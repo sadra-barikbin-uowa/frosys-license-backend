@@ -1,70 +1,78 @@
-import { storage } from "./storage";
-import { mockUsers } from "../data/mockUsers";
-import { ensureAllSeeded } from "../data/ensureSeeded";
 import { AppError } from "../utils/errors";
+import { apiRequest } from "./api";
 
-const USERS_KEY = "users";
-export const CURRENT_USER_KEY = "currentUser";
-
-const ensureUsersSeeded = () => {
-	ensureAllSeeded();
-	const existing = storage.read(USERS_KEY, null);
-	if (!existing) {
-		storage.write(USERS_KEY, mockUsers);
-		return mockUsers;
-	}
-	const admin = mockUsers.find((user) => user.id === "ADM-001");
-	if (admin && existing.some((user) => user.id === admin.id && user.name !== admin.name)) {
-		const updated = existing.map((user) => (user.id === admin.id ? { ...user, name: admin.name } : user));
-		storage.write(USERS_KEY, updated);
-		return updated;
-	}
-	return existing;
-};
-
-const toSafeUser = (user) => {
-	const { password: _password, ...safeUser } = user;
-	return safeUser;
-};
+const normalizeUser = (user) => ({
+    ...user,
+    id: String(user.id),
+    jobTitle: user.jobTitle ?? user.job_title ?? "",
+});
 
 export const authService = {
-	async login(username, password) {
-		await storage.delay();
-		const users = ensureUsersSeeded();
-		const name = username.trim().toLowerCase();
-		const user = users.find(
-			(u) => u.username.toLowerCase() === name && u.password === password,
-		);
-		if (!user) {
-			throw new AppError("اسم المستخدم أو كلمة المرور غير صحيحة");
-		}
-		if (user.status === "Inactive") {
-			throw new AppError("هذا الحساب موقوف، الرجاء التواصل مع الإدارة");
-		}
-		const safeUser = toSafeUser(user);
-		storage.write(CURRENT_USER_KEY, safeUser);
-		return safeUser;
-	},
+    hasToken() {
+        return Boolean(localStorage.getItem("authToken"));
+    },
 
-	async logout() {
-		await storage.delay(80);
-		storage.remove(CURRENT_USER_KEY);
-	},
+    async login(username, password) {
+        try {
+            const result = await apiRequest("/login", {
+                method: "POST",
+                body: JSON.stringify({
+                    username: username.trim(),
+                    password,
+                }),
+            });
 
-	// يعيد المستخدم الحالي بعد التأكد أنه ما زال موجودًا وفعّالًا؛ فإذا حُذف الحساب
-	// أو أُوقف من قبل المدير تنتهي الجلسة بدل بقائها صالحة للأبد
-	getCurrentUser() {
-		const stored = storage.read(CURRENT_USER_KEY, null);
-		if (!stored) return null;
-		const record = ensureUsersSeeded().find((u) => u.id === stored.id);
-		if (!record || record.status === "Inactive") {
-			storage.remove(CURRENT_USER_KEY);
-			return null;
-		}
-		return toSafeUser(record);
-	},
+            if (!result?.token || !result?.user) {
+                throw new Error("استجابة تسجيل الدخول من الخادم غير مكتملة");
+            }
 
-	getUsers() {
-		return ensureUsersSeeded();
-	},
+            localStorage.setItem("authToken", result.token);
+            return normalizeUser(result.user);
+        } catch (error) {
+            if (error instanceof AppError) {
+                throw error;
+            }
+
+            throw new AppError(
+                error.message || "تعذر تسجيل الدخول، تحقق من اتصال الخادم"
+            );
+        }
+    },
+
+    async logout() {
+        try {
+            if (this.hasToken()) {
+                await apiRequest("/logout", {
+                    method: "POST",
+                });
+            }
+        } finally {
+            localStorage.removeItem("authToken");
+        }
+    },
+
+    async revalidate() {
+        if (!this.hasToken()) {
+            return null;
+        }
+
+        try {
+            const result = await apiRequest("/user");
+            const user = result?.user;
+
+            if (!user || user.status === "Inactive") {
+                localStorage.removeItem("authToken");
+                return null;
+            }
+
+            return normalizeUser(user);
+        } catch (error) {
+            if (error.status === 401 || error.status === 403) {
+                localStorage.removeItem("authToken");
+                return null;
+            }
+
+            throw error;
+        }
+    },
 };

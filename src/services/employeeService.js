@@ -1,107 +1,124 @@
-import { storage } from "./storage";
-import { mockUsers } from "../data/mockUsers";
-import { ensureAllSeeded } from "../data/ensureSeeded";
-import { generateId } from "../utils/generateBadgeNumber";
-import { AppError } from "../utils/errors";
+﻿import { apiRequest } from "./api";
+import { getApiCollection } from "./apiResources";
 
-const USERS_KEY = "users";
+const normalizeEmployee = (employee) => ({
+    ...employee,
+    id: String(employee.id),
+    jobTitle: employee.job_title ?? employee.jobTitle ?? "",
+});
 
-const ensureSeeded = () => {
-	ensureAllSeeded();
-	const existing = storage.read(USERS_KEY, null);
-	if (!existing) {
-		storage.write(USERS_KEY, mockUsers);
-		return mockUsers;
-	}
-	return existing;
+const getEmployeeFromResponse = (result) => {
+    const employee = result?.employee;
+
+    if (!employee) {
+        throw new Error("لم يُرجع الخادم بيانات الموظف المطلوبة");
+    }
+
+    return normalizeEmployee(employee);
 };
 
-// اسم المستخدم يجب أن يكون فريدًا (بغض النظر عن حالة الأحرف) وإلا يصبح تسجيل الدخول ملتبسًا
-const assertUniqueUsername = (users, username, exceptId = null) => {
-	const taken = users.some(
-		(u) =>
-			u.id !== exceptId && u.username.toLowerCase() === username.toLowerCase(),
-	);
-	if (taken) throw new AppError("اسم المستخدم مستخدم بالفعل، اختر اسمًا آخر");
-};
-
-// عند ربط Backend مستقبلاً: استبدل الدوال هنا بطلبات axios
-// مثال: getEmployees -> axios.get('/api/employees')
 export const employeeService = {
-	async getEmployees() {
-		await storage.delay();
-		return ensureSeeded().filter((u) => u.role === "employee");
-	},
+    async getEmployees() {
+        return (await getApiCollection("/employees"))
+            .map(normalizeEmployee)
+            .filter((employee) => employee.role === "employee");
+    },
 
-	async getEmployeeById(id) {
-		await storage.delay();
-		return ensureSeeded().find((u) => u.id === id) || null;
-	},
+    async getEmployeeById(id) {
+        const result = await apiRequest(`/employees/${encodeURIComponent(id)}`);
 
-	async createEmployee(data) {
-		await storage.delay();
-		const users = ensureSeeded();
-		const username = data.username.trim();
-		assertUniqueUsername(users, username);
-		const newEmployee = {
-			id: generateId("EMP"),
-			role: "employee",
-			status: "Active",
-			...data,
-			name: data.name.trim(),
-			username,
-			jobTitle: data.jobTitle.trim(),
-		};
-		storage.write(USERS_KEY, [...users, newEmployee]);
-		return newEmployee;
-	},
+        if (!result?.employee) {
+            return null;
+        }
 
-	async updateEmployee(id, data) {
-		await storage.delay();
-		const users = ensureSeeded();
-		const changes = { ...data };
-		if (changes.username !== undefined) {
-			changes.username = changes.username.trim();
-			assertUniqueUsername(users, changes.username, id);
-		}
-		if (changes.name !== undefined) changes.name = changes.name.trim();
-		if (changes.jobTitle !== undefined) changes.jobTitle = changes.jobTitle.trim();
-		const updated = users.map((u) => (u.id === id ? { ...u, ...changes } : u));
-		storage.write(USERS_KEY, updated);
+        const employee = normalizeEmployee(result.employee);
 
-		// الاسم مخزّن أيضًا داخل سجلات السائقين والبطاقات، نحدّثه ليبقى متسقًا
-		if (changes.name) {
-			["drivers", "badges"].forEach((key) => {
-				const records = storage.read(key, []);
-				if (records.some((r) => r.createdBy === id && r.createdByName !== changes.name))
-					storage.write(
-						key,
-						records.map((r) =>
-							r.createdBy === id ? { ...r, createdByName: changes.name } : r,
-						),
-					);
-			});
-		}
-		return updated.find((u) => u.id === id);
-	},
+        return employee.role === "employee" ? employee : null;
+    },
 
-	async toggleEmployeeStatus(id) {
-		await storage.delay();
-		const users = ensureSeeded();
-		const updated = users.map((u) =>
-			u.id === id
-				? { ...u, status: u.status === "Active" ? "Inactive" : "Active" }
-				: u,
-		);
-		storage.write(USERS_KEY, updated);
-		return updated.find((u) => u.id === id);
-	},
+    async createEmployee(data) {
+        const payload = {
+            name: data.name.trim(),
+            username: data.username.trim(),
+            job_title: data.jobTitle?.trim() ?? data.job_title?.trim() ?? "",
+            password: data.password,
+            role: "employee",
+            status: "Active",
+        };
 
-	async deleteEmployee(id) {
-		await storage.delay();
-		const users = ensureSeeded();
-		const updated = users.filter((u) => u.id !== id);
-		storage.write(USERS_KEY, updated);
-		return true;
-	},
+        if (data.email) {
+            payload.email = data.email.trim();
+        }
+
+        const result = await apiRequest("/employees", {
+            method: "POST",
+            body: JSON.stringify(payload),
+        });
+
+        return getEmployeeFromResponse(result);
+    },
+
+    async updateEmployee(id, data) {
+        const payload = {};
+
+        if (data.name !== undefined) {
+            payload.name = data.name.trim();
+        }
+
+        if (data.username !== undefined) {
+            payload.username = data.username.trim();
+        }
+
+        if (data.jobTitle !== undefined) {
+            payload.job_title = data.jobTitle.trim();
+        } else if (data.job_title !== undefined) {
+            payload.job_title = data.job_title.trim();
+        }
+
+        if (data.password) {
+            payload.password = data.password;
+        }
+
+        if (data.email !== undefined) {
+            payload.email = data.email?.trim() || null;
+        }
+
+        if (data.status !== undefined) {
+            payload.status = data.status;
+        }
+
+        if (data.role !== undefined) {
+            payload.role = data.role;
+        }
+
+        const result = await apiRequest(
+            `/employees/${encodeURIComponent(id)}`,
+            {
+                method: "PUT",
+                body: JSON.stringify(payload),
+            }
+        );
+
+        return getEmployeeFromResponse(result);
+    },
+
+    async toggleEmployeeStatus(id) {
+        const employee = await this.getEmployeeById(id);
+
+        if (!employee) {
+            throw new Error("لم يتم العثور على الموظف");
+        }
+
+        return this.updateEmployee(id, {
+            status: employee.status === "Active" ? "Inactive" : "Active",
+        });
+    },
+
+    async deleteEmployee(id) {
+        await apiRequest(`/employees/${encodeURIComponent(id)}`, {
+            method: "DELETE",
+        });
+
+        return true;
+    },
 };

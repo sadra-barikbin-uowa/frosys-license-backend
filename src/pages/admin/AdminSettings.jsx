@@ -10,7 +10,6 @@ import BadgePreview from "../../components/badges/BadgePreview";
 import { useToast } from "../../hooks/useToast";
 import { useSettings } from "../../hooks/useSettings";
 import { defaultSettings } from "../../services/settingsService";
-import { storage } from "../../services/storage";
 import { todayISO, addYears } from "../../utils/formatDate";
 import { getErrorMessage } from "../../utils/errors";
 
@@ -55,48 +54,20 @@ const validate = (form) => {
 	return errors;
 };
 
-const StorageMeter = () => {
-	const { used, limit } = storage.usage();
-	const percent = Math.min(100, Math.round((used / limit) * 100));
-	const tone = percent >= 90 ? "bg-rose-500" : percent >= 70 ? "bg-amber-500" : "bg-emerald-500";
-
-	return (
-		<Card>
-			<div className="flex items-center gap-2 mb-3">
-				<Database size={16} className="text-indigo-500" />
-				<h2 className="text-sm font-bold text-slate-800">مساحة التخزين في المتصفح</h2>
-			</div>
-			<div
-				className="h-2 rounded-full bg-slate-100 overflow-hidden"
-				role="progressbar"
-				aria-valuenow={percent}
-				aria-valuemin={0}
-				aria-valuemax={100}
-				aria-label="نسبة استخدام مساحة التخزين"
-			>
-				<div className={`h-full rounded-full ${tone}`} style={{ width: `${percent}%` }} />
-			</div>
-			<p className="text-xs text-slate-500 mt-2">
-				مستخدم نحو {percent}% من المساحة المتاحة (تقريبي). تُحفظ البيانات داخل متصفحك فقط، وتتناقص
-				المساحة مع زيادة السجلات والصور.
-			</p>
-		</Card>
-	);
-};
-
 const AdminSettings = () => {
 	const { showToast } = useToast();
 	const { settings, updateSettings } = useSettings();
-	const [form, setForm] = useState(() => toForm(settings));
+	const [draft, setDraft] = useState(null);
 	const [errors, setErrors] = useState({});
 	const [saving, setSaving] = useState(false);
 	const [side, setSide] = useState("front");
 
+	const form = draft ?? toForm(settings);
 	const saved = toForm(settings);
 	const dirty = Object.keys(form).some((key) => form[key] !== saved[key]);
 
 	const setField = (field, value) => {
-		setForm((current) => ({ ...current, [field]: value }));
+		setDraft((current) => ({ ...(current ?? toForm(settings)), [field]: value }));
 		setErrors((current) => ({ ...current, [field]: undefined }));
 	};
 
@@ -115,7 +86,7 @@ const AdminSettings = () => {
 				badgeValidityYears: Number(form.badgeValidityYears),
 				expiringSoonDays: Number(form.expiringSoonDays),
 			});
-			setForm(toForm(result));
+			setDraft(toForm(result));
 			showToast("تم حفظ الإعدادات بنجاح", "success");
 		} catch (error) {
 			console.error(error);
@@ -126,7 +97,7 @@ const AdminSettings = () => {
 	};
 
 	const handleReset = () => {
-		setForm(toForm({ ...defaultSettings, logo: "" }));
+		setDraft(toForm({ ...defaultSettings, logo: "" }));
 		setErrors({});
 	};
 
@@ -250,7 +221,16 @@ const AdminSettings = () => {
 						</div>
 					</Card>
 
-					<StorageMeter />
+					<Card>
+						<div className="flex items-center gap-2 mb-3">
+							<Database size={16} className="text-indigo-500" />
+							<h2 className="text-sm font-bold text-slate-800">تخزين البيانات</h2>
+						</div>
+						<p className="text-xs text-slate-500">
+							تُحفظ إعدادات النظام والسجلات والصور في قاعدة بيانات وخادم النظام، ولا تعتمد على مساحة
+							التخزين في هذا المتصفح.
+						</p>
+					</Card>
 				</form>
 
 				<div className="xl:sticky xl:top-6 min-w-0">

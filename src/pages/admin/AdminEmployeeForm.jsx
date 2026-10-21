@@ -13,7 +13,7 @@ import { useToast } from "../../hooks/useToast";
 import { employeeService } from "../../services/employeeService";
 import { AppError, getErrorMessage } from "../../utils/errors";
 
-const MIN_PASSWORD = 6;
+const MIN_PASSWORD = 8;
 
 const validate = (form, isEditing) => {
 	const errors = {};
@@ -46,7 +46,7 @@ const AdminEmployeeForm = () => {
 				jobTitle: employee.jobTitle || "",
 				password: "",
 			}
-		: { name: "", username: "", jobTitle: "", password: "123456" });
+		: { name: "", username: "", jobTitle: "", password: "" });
 
 	const setField = (field) => (event) => {
 		setForm((current) => ({ ...(current ?? values), [field]: event.target.value }));
@@ -73,7 +73,7 @@ const AdminEmployeeForm = () => {
 				await employeeService.updateEmployee(id, payload);
 				showToast("تم تحديث بيانات الموظف بنجاح");
 			} else {
-				await employeeService.createEmployee({ ...payload, password: values.password || "123456" });
+				await employeeService.createEmployee({ ...payload, password: values.password });
 				showToast("تمت إضافة الموظف بنجاح");
 			}
 			navigate("/admin/employees");

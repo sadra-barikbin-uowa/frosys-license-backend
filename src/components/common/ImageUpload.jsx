@@ -3,8 +3,7 @@ import { Camera, Upload, X, RefreshCw, Loader2 } from "lucide-react";
 import { prepareImage } from "../../utils/image";
 import { getErrorMessage } from "../../utils/errors";
 
-// مكون رفع صور عام: يصغّر الصورة ويضغطها ثم يحوّلها إلى Base64 ليتم تخزينها
-// في LocalStorage (المساحة محدودة، فالصور الأصلية الكبيرة تملأها بسرعة)
+// يصغّر الصور ويضغطها ثم يحوّلها إلى Base64 لإرسالها إلى API.
 const ImageUpload = ({
 	label,
 	value,

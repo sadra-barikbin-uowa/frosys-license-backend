@@ -19,11 +19,11 @@ function App() {
 		<BrowserRouter>
 			<ScrollToTop />
 			<ToastProvider>
-				<SettingsProvider>
-					<AuthProvider>
+				<AuthProvider>
+					<SettingsProvider>
 						<AppRoutes />
-					</AuthProvider>
-				</SettingsProvider>
+					</SettingsProvider>
+				</AuthProvider>
 			</ToastProvider>
 		</BrowserRouter>
 	);

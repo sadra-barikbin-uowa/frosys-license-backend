@@ -1,80 +1,73 @@
-import { storage } from "./storage";
-import { ensureAllSeeded } from "../data/ensureSeeded";
-import { generateId } from "../utils/generateBadgeNumber";
+import { apiRequest } from "./api";
+import { createApiBody, getApiCollection, imageUrl, normalizeApiId } from "./apiResources";
 
-const DRIVERS_KEY = "drivers";
+const normalizeDriver = (driver) => ({
+  ...driver,
+  id: normalizeApiId(driver.id),
+  fullName: driver.full_name ?? driver.fullName ?? "",
+  jobTitle: driver.job_title ?? driver.jobTitle ?? "",
+  personType: driver.person_type ?? driver.personType ?? "",
+  birthDate: driver.birth_date ?? driver.birthDate ?? "",
+  nationalId: driver.national_id ?? driver.nationalId ?? "",
+  licenseNumber: driver.license_number ?? driver.licenseNumber ?? "",
+  licenseIssue: driver.license_issue ?? driver.licenseIssue ?? "",
+  licenseExpiry: driver.license_expiry ?? driver.licenseExpiry ?? "",
+  createdBy: normalizeApiId(driver.created_by ?? driver.createdBy),
+  createdByName: driver.creator?.name ?? driver.createdByName ?? "",
+  vehicleId: normalizeApiId(driver.vehicles?.[0]?.id ?? driver.vehicle_id ?? driver.vehicleId),
+  photo: imageUrl(driver.photo),
+});
 
-const ensureSeeded = () => {
-  ensureAllSeeded();
-  return storage.read(DRIVERS_KEY, []);
+const driverFields = {
+  fullName: "full_name",
+  jobTitle: "job_title",
+  personType: "person_type",
+  birthDate: "birth_date",
+  nationalId: "national_id",
+  licenseNumber: "license_number",
+  licenseIssue: "license_issue",
+  licenseExpiry: "license_expiry",
 };
 
-// عند ربط Backend مستقبلاً: استبدل الدوال هنا بطلبات axios بنفس التوقيع
-// مثال: getDrivers -> axios.get('/api/drivers').then(res => res.data)
 export const driverService = {
   async getDrivers() {
-    await storage.delay();
-    return ensureSeeded();
+    return (await getApiCollection("/drivers")).map(normalizeDriver);
   },
 
-  async getDriversByEmployee(employeeId) {
-    await storage.delay();
-    return ensureSeeded().filter((d) => d.createdBy === employeeId);
+  async getDriversByEmployee() {
+    return this.getDrivers();
   },
 
   async getDriverById(id) {
-    await storage.delay();
-    return ensureSeeded().find((d) => d.id === id) || null;
+    const result = await apiRequest(`/drivers/${encodeURIComponent(id)}`);
+    return result?.driver ? normalizeDriver(result.driver) : null;
   },
 
-  async getDriverByIdForEmployee(id, employeeId) {
-    await storage.delay();
-    return ensureSeeded().find((driver) => driver.id === id && driver.createdBy === employeeId) || null;
+  async getDriverByIdForEmployee(id) {
+    return this.getDriverById(id);
   },
 
   async createDriver(data) {
-    await storage.delay();
-    const drivers = ensureSeeded();
-    const newDriver = { id: generateId("DR"), createdAt: new Date().toISOString(), ...data };
-    storage.write(DRIVERS_KEY, [newDriver, ...drivers]);
-    return newDriver;
+    const body = await createApiBody(data, driverFields);
+    const result = await apiRequest("/drivers", { method: "POST", body });
+    return normalizeDriver(result.driver);
   },
 
   async updateDriver(id, data) {
-    await storage.delay();
-    const drivers = ensureSeeded();
-    const updated = drivers.map((d) => (d.id === id ? { ...d, ...data } : d));
-    storage.write(DRIVERS_KEY, updated);
-    const badges = storage.read("badges", []);
-    storage.write("badges", badges.map((badge) => badge.driverId === id ? {
-      ...badge,
-      ...(data.fullName !== undefined ? { driverName: data.fullName } : {}),
-      ...(data.jobTitle !== undefined ? { jobTitle: data.jobTitle } : {}),
-      ...(data.personType !== undefined ? { personType: data.personType } : {}),
-      ...(data.photo !== undefined ? { driverPhoto: data.photo } : {}),
-      ...(data.nationalId !== undefined ? { nationalId: data.nationalId } : {}),
-      ...(data.licenseNumber !== undefined ? { licenseNumber: data.licenseNumber } : {}),
-    } : badge));
-    return updated.find((d) => d.id === id);
+    const body = await createApiBody(data, driverFields);
+    const result = await apiRequest(`/drivers/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body,
+    });
+    return result?.driver ? normalizeDriver(result.driver) : null;
   },
 
-  async updateDriverForEmployee(id, employeeId, data) {
-    const driver = await driverService.getDriverByIdForEmployee(id, employeeId);
-    if (!driver) return null;
-    return driverService.updateDriver(id, data);
+  async updateDriverForEmployee(id, _employeeId, data) {
+    return this.updateDriver(id, data);
   },
 
   async deleteDriver(id) {
-    await storage.delay();
-    const drivers = ensureSeeded();
-    const driver = drivers.find((item) => item.id === id);
-    storage.write(DRIVERS_KEY, drivers.filter((d) => d.id !== id));
-    if (driver?.vehicleId) {
-      const vehicles = storage.read("vehicles", []);
-      storage.write("vehicles", vehicles.filter((vehicle) => vehicle.id !== driver.vehicleId));
-    }
-    const badges = storage.read("badges", []);
-    storage.write("badges", badges.filter((badge) => badge.driverId !== id));
+    await apiRequest(`/drivers/${encodeURIComponent(id)}`, { method: "DELETE" });
     return true;
   },
 };

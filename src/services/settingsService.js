@@ -1,6 +1,5 @@
-import { storage } from "./storage";
-
-const SETTINGS_KEY = "settings";
+import { apiRequest } from "./api";
+import { createApiBody, imageUrl } from "./apiResources";
 
 export const defaultSettings = {
 	systemName: "نظام إدارة السائقين والمركبات",
@@ -14,45 +13,57 @@ export const defaultSettings = {
 	expiringSoonDays: 30,
 };
 
-const positiveInt = (value, fallback) => {
-	const number = Math.floor(Number(value));
-	return Number.isFinite(number) && number >= 1 ? number : fallback;
+let currentSettings = { ...defaultSettings };
+
+const normalizeSettings = (settings) => {
+	const data = settings || {};
+	const systemName = data.system_name ?? data.systemName ?? defaultSettings.systemName;
+	return {
+		...defaultSettings,
+		systemName,
+		organizationName: systemName,
+		logo: imageUrl(data.logo),
+		managerSignature: imageUrl(data.manager_signature ?? data.managerSignature),
+		managerSignatureColor:
+			data.manager_signature_color ?? data.managerSignatureColor ?? defaultSettings.managerSignatureColor,
+		managerSignatureWidth:
+			Number(data.manager_signature_width ?? data.managerSignatureWidth) ||
+			defaultSettings.managerSignatureWidth,
+		badgeColor: data.badge_color ?? data.badgeColor ?? defaultSettings.badgeColor,
+		contactInfo: data.contact_info ?? data.contactInfo ?? "",
+		badgeValidityYears:
+			Number(data.badge_validity_years ?? data.badgeValidityYears) ||
+			defaultSettings.badgeValidityYears,
+		expiringSoonDays:
+			Number(data.expiring_soon_days ?? data.expiringSoonDays) ||
+			defaultSettings.expiringSoonDays,
+	};
 };
 
-const readSettings = () => {
-	const saved = storage.read(SETTINGS_KEY, {});
-	const systemName = saved.systemName || saved.organizationName || defaultSettings.systemName;
-	return { ...defaultSettings, ...saved, systemName, organizationName: systemName };
+const settingsFields = {
+	systemName: "system_name",
+	managerSignature: "manager_signature",
+	managerSignatureColor: "manager_signature_color",
+	managerSignatureWidth: "manager_signature_width",
+	badgeColor: "badge_color",
+	contactInfo: "contact_info",
+	badgeValidityYears: "badge_validity_years",
+	expiringSoonDays: "expiring_soon_days",
 };
 
 export const settingsService = {
 	getSettingsSync() {
-		return readSettings();
+		return currentSettings;
 	},
 	async getSettings() {
-		await storage.delay(60);
-		return readSettings();
+		const result = await apiRequest("/settings");
+		currentSettings = normalizeSettings(result?.settings);
+		return currentSettings;
 	},
 	async updateSettings(data) {
-		await storage.delay();
-		const current = readSettings();
-		const requestedName = data.systemName ?? data.organizationName ?? current.systemName;
-		const systemName = requestedName.trim() || current.systemName;
-		const updated = {
-			...current,
-			...data,
-			systemName,
-			organizationName: systemName,
-			badgeValidityYears: positiveInt(
-				data.badgeValidityYears ?? current.badgeValidityYears,
-				defaultSettings.badgeValidityYears,
-			),
-			expiringSoonDays: positiveInt(
-				data.expiringSoonDays ?? current.expiringSoonDays,
-				defaultSettings.expiringSoonDays,
-			),
-		};
-		storage.write(SETTINGS_KEY, updated);
-		return updated;
+		const body = await createApiBody(data, settingsFields);
+		const result = await apiRequest("/settings", { method: "PUT", body });
+		currentSettings = normalizeSettings(result?.settings);
+		return currentSettings;
 	},
 };

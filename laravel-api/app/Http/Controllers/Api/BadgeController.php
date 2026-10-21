@@ -7,25 +7,50 @@ use App\Models\Badge;
 use App\Models\Driver;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 
 class BadgeController extends Controller
 {
-    private function ensureAdmin(Request $request): void
+    private function badgesFor(Request $request)
     {
-        abort_unless(
-            $request->user()?->role === 'admin',
-            403,
-            'غير مصرح لك بتنفيذ هذه العملية.'
-        );
+        $query = Badge::query();
+
+        if ($request->user()?->role !== 'admin') {
+            $query->where('created_by', $request->user()->id);
+        }
+
+        return $query;
+    }
+
+    private function driversFor(Request $request)
+    {
+        $query = Driver::query();
+
+        if ($request->user()?->role !== 'admin') {
+            $query->where('created_by', $request->user()->id);
+        }
+
+        return $query;
+    }
+
+    private function vehiclesFor(Request $request)
+    {
+        $query = Vehicle::query();
+
+        if ($request->user()?->role !== 'admin') {
+            $query->where('created_by', $request->user()->id);
+        }
+
+        return $query;
     }
 
     public function index(Request $request)
     {
-        $this->ensureAdmin($request);
-
-        $badges = Badge::with(['driver', 'vehicle'])
+        $badges = $this->badgesFor($request)
+            ->with(['driver', 'vehicle', 'creator'])
             ->orderByDesc('id')
             ->paginate(15);
 
@@ -34,11 +59,9 @@ class BadgeController extends Controller
 
     public function store(Request $request)
     {
-        $this->ensureAdmin($request);
-
         $data = $request->validate([
             'badge_number' => [
-                'required', 'string', 'max:100',
+                'sometimes', 'required', 'string', 'max:100',
                 'unique:badges,badge_number',
             ],
             'driver_id' => ['required', 'integer', 'exists:drivers,id'],
@@ -48,15 +71,15 @@ class BadgeController extends Controller
             ],
             'issue_date' => ['required', 'date'],
             'expiry_date' => ['required', 'date', 'after_or_equal:issue_date'],
-            'status' => ['sometimes', 'required', Rule::in(['Active', 'Inactive', 'Expired'])],
+            'status' => ['sometimes', 'required', Rule::in(['Active', 'Inactive', 'Expired', 'Suspended'])],
         ]);
 
-        $driver = Driver::findOrFail($data['driver_id']);
+        $driver = $this->driversFor($request)->findOrFail($data['driver_id']);
 
         $vehicle = null;
 
         if (!empty($data['vehicle_id'])) {
-            $vehicle = Vehicle::findOrFail($data['vehicle_id']);
+            $vehicle = $this->vehiclesFor($request)->findOrFail($data['vehicle_id']);
 
             if (
                 $vehicle->driver_id !== null &&
@@ -68,41 +91,47 @@ class BadgeController extends Controller
             }
         }
 
-        $badge = Badge::create([
-            'public_id' => (string) Str::uuid(),
-            'badge_number' => $data['badge_number'],
-            'driver_id' => $driver->id,
-            'vehicle_id' => $vehicle?->id,
+        $badge = DB::transaction(function () use ($data, $driver, $vehicle, $request) {
+            $badge = Badge::create([
+                'public_id' => (string) Str::uuid(),
+                'badge_number' => $data['badge_number']
+                    ?? 'PENDING-' . (string) Str::uuid(),
+                'driver_id' => $driver->id,
+                'vehicle_id' => $vehicle?->id,
+                'driver_name' => $driver->full_name,
+                'job_title' => $driver->job_title,
+                'person_type' => $driver->person_type,
+                'driver_photo' => $driver->photo,
+                'national_id' => $driver->national_id,
+                'license_number' => $driver->license_number,
+                'vehicle_type' => $vehicle?->vehicle_type,
+                'vehicle_number' => $vehicle?->vehicle_number,
+                'vehicle_model' => $vehicle?->model,
+                'vehicle_color' => $vehicle?->color,
+                'issue_date' => $data['issue_date'],
+                'expiry_date' => $data['expiry_date'],
+                'status' => $data['status'] ?? 'Active',
+                'created_by' => $request->user()->id,
+            ]);
 
-            'driver_name' => $driver->full_name,
-            'job_title' => $driver->job_title,
-            'person_type' => $driver->person_type,
-            'driver_photo' => $driver->photo,
-            'national_id' => $driver->national_id,
-            'license_number' => $driver->license_number,
+            if (!isset($data['badge_number'])) {
+                $badge->badge_number = sprintf('DRV-%s-%05d', date('Y'), $badge->id);
+                $badge->save();
+            }
 
-            'vehicle_type' => $vehicle?->vehicle_type,
-            'vehicle_number' => $vehicle?->vehicle_number,
-            'vehicle_model' => $vehicle?->model,
-            'vehicle_color' => $vehicle?->color,
-
-            'issue_date' => $data['issue_date'],
-            'expiry_date' => $data['expiry_date'],
-            'status' => $data['status'] ?? 'Active',
-            'created_by' => $request->user()->id,
-        ]);
+            return $badge;
+        });
 
         return response()->json([
             'message' => 'تم إنشاء بطاقة التعريف بنجاح.',
-            'badge' => $badge->load(['driver', 'vehicle']),
+            'badge' => $badge->load(['driver', 'vehicle', 'creator']),
         ], 201);
     }
 
     public function show(Request $request, string $id)
     {
-        $this->ensureAdmin($request);
-
-        $badge = Badge::with(['driver', 'vehicle'])
+        $badge = $this->badgesFor($request)
+            ->with(['driver', 'vehicle', 'creator'])
             ->findOrFail($id);
 
         return response()->json([
@@ -112,29 +141,45 @@ class BadgeController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $this->ensureAdmin($request);
+        $badge = $this->badgesFor($request)->findOrFail($id);
 
-        $badge = Badge::findOrFail($id);
+        $request->validate([
+            'driver_id' => ['sometimes', 'required', 'integer'],
+        ]);
+        $driverId = $request->input('driver_id', $badge->driver_id);
+        $driver = $this->driversFor($request)->findOrFail($driverId);
 
         $data = $request->validate([
             'badge_number' => [
                 'sometimes', 'required', 'string', 'max:100',
                 Rule::unique('badges', 'badge_number')->ignore($badge->id),
             ],
-            'driver_id' => ['sometimes', 'required', 'integer', 'exists:drivers,id'],
+            'driver_id' => ['sometimes', 'required', 'integer'],
             'vehicle_id' => ['sometimes', 'nullable', 'integer', 'exists:vehicles,id'],
+            'driver_name' => ['sometimes', 'required', 'string', 'max:255'],
+            'job_title' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'person_type' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'driver_photo' => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'national_id' => [
+                'sometimes', 'nullable', 'string', 'max:100',
+                Rule::unique('drivers', 'national_id')->ignore($driver->id),
+            ],
+            'license_number' => [
+                'sometimes', 'nullable', 'string', 'max:100',
+                Rule::unique('drivers', 'license_number')->ignore($driver->id),
+            ],
+            'vehicle_type' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'vehicle_number' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'vehicle_model' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'vehicle_color' => ['sometimes', 'nullable', 'string', 'max:100'],
             'issue_date' => ['sometimes', 'required', 'date'],
             'expiry_date' => ['sometimes', 'required', 'date'],
-            'status' => ['sometimes', 'required', Rule::in(['Active', 'Inactive', 'Expired'])],
+            'status' => ['sometimes', 'required', Rule::in(['Active', 'Inactive', 'Expired', 'Suspended'])],
         ]);
 
-        $driver = isset($data['driver_id'])
-            ? Driver::findOrFail($data['driver_id'])
-            : Driver::findOrFail($badge->driver_id);
-
         $vehicle = array_key_exists('vehicle_id', $data)
-            ? (!empty($data['vehicle_id']) ? Vehicle::findOrFail($data['vehicle_id']) : null)
-            : ($badge->vehicle_id ? Vehicle::findOrFail($badge->vehicle_id) : null);
+            ? (!empty($data['vehicle_id']) ? $this->vehiclesFor($request)->findOrFail($data['vehicle_id']) : null)
+            : ($badge->vehicle_id ? $this->vehiclesFor($request)->findOrFail($badge->vehicle_id) : null);
 
         if (
             $vehicle &&
@@ -144,6 +189,69 @@ class BadgeController extends Controller
             return response()->json([
                 'message' => 'المركبة مرتبطة بسائق آخر. اختر مركبة السائق المحدد.',
             ], 422);
+        }
+
+        $driverUpdates = [];
+        foreach ([
+            'driver_name' => 'full_name',
+            'job_title' => 'job_title',
+            'person_type' => 'person_type',
+            'national_id' => 'national_id',
+            'license_number' => 'license_number',
+        ] as $requestField => $driverField) {
+            if (array_key_exists($requestField, $data)) {
+                $driverUpdates[$driverField] = $data[$requestField];
+            }
+        }
+
+        if ($request->hasFile('driver_photo')) {
+            $newPhoto = $request->file('driver_photo')->store('drivers', 'public');
+            if ($driver->photo) {
+                Storage::disk('public')->delete($driver->photo);
+            }
+            $driverUpdates['photo'] = $newPhoto;
+            $data['driver_photo'] = $newPhoto;
+        } elseif (array_key_exists('driver_photo', $data)) {
+            if ($driver->photo) {
+                Storage::disk('public')->delete($driver->photo);
+            }
+            $driverUpdates['photo'] = null;
+        }
+
+        if ($driverUpdates) {
+            $driver->update($driverUpdates);
+            $driver->badges()->update([
+                'driver_name' => $driver->full_name,
+                'job_title' => $driver->job_title,
+                'person_type' => $driver->person_type,
+                'driver_photo' => $driver->photo,
+                'national_id' => $driver->national_id,
+                'license_number' => $driver->license_number,
+            ]);
+        }
+
+        if ($vehicle) {
+            $vehicleUpdates = [];
+            foreach ([
+                'vehicle_type' => 'vehicle_type',
+                'vehicle_number' => 'vehicle_number',
+                'vehicle_model' => 'model',
+                'vehicle_color' => 'color',
+            ] as $requestField => $vehicleField) {
+                if (array_key_exists($requestField, $data)) {
+                    $vehicleUpdates[$vehicleField] = $data[$requestField];
+                }
+            }
+
+            if ($vehicleUpdates) {
+                $vehicle->update($vehicleUpdates);
+                $vehicle->badges()->update([
+                    'vehicle_type' => $vehicle->vehicle_type,
+                    'vehicle_number' => $vehicle->vehicle_number,
+                    'vehicle_model' => $vehicle->model,
+                    'vehicle_color' => $vehicle->color,
+                ]);
+            }
         }
 
         if (
@@ -167,24 +275,26 @@ class BadgeController extends Controller
         $badge->national_id = $driver->national_id;
         $badge->license_number = $driver->license_number;
 
-        $badge->vehicle_type = $vehicle?->vehicle_type;
-        $badge->vehicle_number = $vehicle?->vehicle_number;
-        $badge->vehicle_model = $vehicle?->model;
-        $badge->vehicle_color = $vehicle?->color;
+        $badge->vehicle_type = $vehicle?->vehicle_type
+            ?? ($data['vehicle_type'] ?? $badge->vehicle_type);
+        $badge->vehicle_number = $vehicle?->vehicle_number
+            ?? ($data['vehicle_number'] ?? $badge->vehicle_number);
+        $badge->vehicle_model = $vehicle?->model
+            ?? ($data['vehicle_model'] ?? $badge->vehicle_model);
+        $badge->vehicle_color = $vehicle?->color
+            ?? ($data['vehicle_color'] ?? $badge->vehicle_color);
 
         $badge->save();
 
         return response()->json([
             'message' => 'تم تحديث بطاقة التعريف بنجاح.',
-            'badge' => $badge->fresh()->load(['driver', 'vehicle']),
+            'badge' => $badge->fresh()->load(['driver', 'vehicle', 'creator']),
         ]);
     }
 
     public function destroy(Request $request, string $id)
     {
-        $this->ensureAdmin($request);
-
-        $badge = Badge::findOrFail($id);
+        $badge = $this->badgesFor($request)->findOrFail($id);
         $badge->delete();
 
         return response()->json([

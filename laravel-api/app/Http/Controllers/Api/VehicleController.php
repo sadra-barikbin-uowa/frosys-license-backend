@@ -11,20 +11,21 @@ use Illuminate\Support\Facades\Storage;
 
 class VehicleController extends Controller
 {
-    private function ensureAdmin(Request $request): void
+    private function vehiclesFor(Request $request)
     {
-        abort_unless(
-            $request->user()?->role === 'admin',
-            403,
-            'غير مصرح لك بتنفيذ هذه العملية.'
-        );
+        $query = Vehicle::query();
+
+        if ($request->user()?->role !== 'admin') {
+            $query->where('created_by', $request->user()->id);
+        }
+
+        return $query;
     }
 
     public function index(Request $request)
     {
-        $this->ensureAdmin($request);
-
-        $vehicles = Vehicle::with('driver')
+        $vehicles = $this->vehiclesFor($request)
+            ->with('driver')
             ->orderByDesc('id')
             ->paginate(15);
 
@@ -33,8 +34,6 @@ class VehicleController extends Controller
 
     public function store(Request $request)
     {
-        $this->ensureAdmin($request);
-
         $data = $request->validate([
             'vehicle_number' => [
                 'required', 'string', 'max:100',
@@ -51,6 +50,10 @@ class VehicleController extends Controller
         $data['public_id'] = (string) Str::uuid();
         $data['created_by'] = $request->user()->id;
 
+        if (!empty($data['driver_id'])) {
+            $this->driversFor($request)->findOrFail($data['driver_id']);
+        }
+
         if ($request->hasFile('photo')) {
             $data['photo'] = $request->file('photo')
                 ->store('vehicles', 'public');
@@ -66,9 +69,8 @@ class VehicleController extends Controller
 
     public function show(Request $request, string $id)
     {
-        $this->ensureAdmin($request);
-
-        $vehicle = Vehicle::with(['driver', 'badges'])
+        $vehicle = $this->vehiclesFor($request)
+            ->with(['driver', 'badges', 'creator'])
             ->findOrFail($id);
 
         return response()->json([
@@ -78,9 +80,7 @@ class VehicleController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $this->ensureAdmin($request);
-
-        $vehicle = Vehicle::findOrFail($id);
+        $vehicle = $this->vehiclesFor($request)->findOrFail($id);
 
         $data = $request->validate([
             'vehicle_number' => [
@@ -98,6 +98,10 @@ class VehicleController extends Controller
             'photo' => ['sometimes', 'nullable', 'image', 'max:5120'],
         ]);
 
+        if (!empty($data['driver_id'])) {
+            $this->driversFor($request)->findOrFail($data['driver_id']);
+        }
+
         if ($request->hasFile('photo')) {
             if ($vehicle->photo) {
                 Storage::disk('public')->delete($vehicle->photo);
@@ -105,9 +109,17 @@ class VehicleController extends Controller
 
             $data['photo'] = $request->file('photo')
                 ->store('vehicles', 'public');
+        } elseif (array_key_exists('photo', $data) && $vehicle->photo) {
+            Storage::disk('public')->delete($vehicle->photo);
         }
 
         $vehicle->update($data);
+        $vehicle->badges()->update([
+            'vehicle_type' => $vehicle->vehicle_type,
+            'vehicle_number' => $vehicle->vehicle_number,
+            'vehicle_model' => $vehicle->model,
+            'vehicle_color' => $vehicle->color,
+        ]);
 
         return response()->json([
             'message' => 'تم تحديث بيانات المركبة بنجاح.',
@@ -117,9 +129,7 @@ class VehicleController extends Controller
 
     public function destroy(Request $request, string $id)
     {
-        $this->ensureAdmin($request);
-
-        $vehicle = Vehicle::findOrFail($id);
+        $vehicle = $this->vehiclesFor($request)->findOrFail($id);
 
         if ($vehicle->badges()->exists()) {
             return response()->json([
@@ -136,5 +146,16 @@ class VehicleController extends Controller
         return response()->json([
             'message' => 'تم حذف المركبة بنجاح.',
         ]);
+    }
+
+    private function driversFor(Request $request)
+    {
+        $query = \App\Models\Driver::query();
+
+        if ($request->user()?->role !== 'admin') {
+            $query->where('created_by', $request->user()->id);
+        }
+
+        return $query;
     }
 }

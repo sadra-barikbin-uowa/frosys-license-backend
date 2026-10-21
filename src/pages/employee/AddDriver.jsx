@@ -67,6 +67,7 @@ const AddDriver = ({ role = "employee" }) => {
 
 		setSubmitting(true);
 		let createdDriverId = null;
+		let createdVehicleId = null;
 		try {
 			const newDriver = await driverService.createDriver({
 				fullName: data.fullName.trim(),
@@ -95,10 +96,7 @@ const AddDriver = ({ role = "employee" }) => {
 				driverId: newDriver.id,
 				createdBy: user.id,
 			});
-
-			await driverService.updateDriver(newDriver.id, {
-				vehicleId: newVehicle.id,
-			});
+			createdVehicleId = newVehicle.id;
 
 			const issueDate = todayISO();
 			const newBadge = await badgeService.createBadge({
@@ -124,8 +122,20 @@ const AddDriver = ({ role = "employee" }) => {
 			navigate(`/${role}/badges/${newBadge.id}`);
 		} catch (err) {
 			console.error(err);
-			// إن فشلت إحدى الخطوات (مثل امتلاء التخزين) نحذف ما أُنشئ منها حتى لا تبقى سجلات ناقصة
-			if (createdDriverId) await driverService.deleteDriver(createdDriverId).catch(() => {});
+			if (createdVehicleId) {
+				try {
+					await vehicleService.deleteVehicle(createdVehicleId);
+				} catch (rollbackError) {
+					console.error("تعذر التراجع عن إنشاء المركبة", rollbackError);
+				}
+			}
+			if (createdDriverId) {
+				try {
+					await driverService.deleteDriver(createdDriverId);
+				} catch (rollbackError) {
+					console.error("تعذر التراجع عن إنشاء السائق", rollbackError);
+				}
+			}
 			showToast(getErrorMessage(err, "حدث خطأ أثناء إنشاء البطاقة، حاول مرة أخرى"), "error");
 			setSubmitting(false);
 		}

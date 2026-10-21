@@ -18,7 +18,7 @@ const loadImage = (src) =>
 		image.src = src;
 	});
 
-// يصغّر الصورة ويضغطها قبل حفظها في LocalStorage (المساحة المتاحة نحو 5MB فقط)
+// يصغّر الصورة ويضغطها قبل رفعها إلى الخادم.
 // - الصور الشخصية: JPEG بخلفية بيضاء
 // - الشعار: PNG للحفاظ على الشفافية
 export const prepareImage = async (

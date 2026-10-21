@@ -1,56 +1,51 @@
-import { storage } from "./storage";
-import { ensureAllSeeded } from "../data/ensureSeeded";
-import { generateId } from "../utils/generateBadgeNumber";
+import { apiRequest } from "./api";
+import { createApiBody, getApiCollection, imageUrl, normalizeApiId } from "./apiResources";
 
-const VEHICLES_KEY = "vehicles";
+const normalizeVehicle = (vehicle) => ({
+  ...vehicle,
+  id: normalizeApiId(vehicle.id),
+  vehicleNumber: vehicle.vehicle_number ?? vehicle.vehicleNumber ?? "",
+  vehicleType: vehicle.vehicle_type ?? vehicle.vehicleType ?? "",
+  model: vehicle.model ?? "",
+  driverId: normalizeApiId(vehicle.driver_id ?? vehicle.driverId),
+  createdBy: normalizeApiId(vehicle.created_by ?? vehicle.createdBy),
+  createdByName: vehicle.creator?.name ?? vehicle.createdByName ?? "",
+  photo: imageUrl(vehicle.photo),
+});
 
-const ensureSeeded = () => {
-  ensureAllSeeded();
-  return storage.read(VEHICLES_KEY, []);
+const vehicleFields = {
+  vehicleNumber: "vehicle_number",
+  vehicleType: "vehicle_type",
+  driverId: "driver_id",
 };
 
-// عند ربط Backend مستقبلاً: استبدل الدوال هنا بطلبات axios بنفس التوقيع
 export const vehicleService = {
   async getVehicles() {
-    await storage.delay();
-    return ensureSeeded();
+    return (await getApiCollection("/vehicles")).map(normalizeVehicle);
   },
 
   async getVehicleById(id) {
-    await storage.delay();
-    return ensureSeeded().find((v) => v.id === id) || null;
+    const result = await apiRequest(`/vehicles/${encodeURIComponent(id)}`);
+    return result?.vehicle ? normalizeVehicle(result.vehicle) : null;
   },
 
   async createVehicle(data) {
-    await storage.delay();
-    const vehicles = ensureSeeded();
-    const newVehicle = { id: generateId("VH"), ...data };
-    storage.write(VEHICLES_KEY, [newVehicle, ...vehicles]);
-    return newVehicle;
+    const body = await createApiBody(data, vehicleFields);
+    const result = await apiRequest("/vehicles", { method: "POST", body });
+    return normalizeVehicle(result.vehicle);
   },
 
   async updateVehicle(id, data) {
-    await storage.delay();
-    const vehicles = ensureSeeded();
-    const updated = vehicles.map((v) => (v.id === id ? { ...v, ...data } : v));
-    storage.write(VEHICLES_KEY, updated);
-    const badges = storage.read("badges", []);
-    storage.write("badges", badges.map((badge) => badge.vehicleId === id ? {
-      ...badge,
-      ...(data.vehicleNumber !== undefined ? { vehicleNumber: data.vehicleNumber } : {}),
-      ...(data.vehicleType !== undefined ? { vehicleType: data.vehicleType } : {}),
-      ...(data.model !== undefined ? { vehicleModel: data.model } : {}),
-      ...(data.color !== undefined ? { vehicleColor: data.color } : {}),
-    } : badge));
-    return updated.find((v) => v.id === id);
+    const body = await createApiBody(data, vehicleFields);
+    const result = await apiRequest(`/vehicles/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body,
+    });
+    return result?.vehicle ? normalizeVehicle(result.vehicle) : null;
   },
 
   async deleteVehicle(id) {
-    await storage.delay();
-    const vehicles = ensureSeeded();
-    storage.write(VEHICLES_KEY, vehicles.filter((v) => v.id !== id));
-    const badges = storage.read("badges", []);
-    storage.write("badges", badges.filter((badge) => badge.vehicleId !== id));
+    await apiRequest(`/vehicles/${encodeURIComponent(id)}`, { method: "DELETE" });
     return true;
   },
 };

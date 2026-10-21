@@ -9,4 +9,4 @@ export class AppError extends Error {
 export const getErrorMessage = (
 	error,
 	fallback = "حدث خطأ غير متوقع، حاول مرة أخرى",
-) => (error instanceof AppError ? error.message : fallback);
+) => (error instanceof Error && error.message ? error.message : fallback);

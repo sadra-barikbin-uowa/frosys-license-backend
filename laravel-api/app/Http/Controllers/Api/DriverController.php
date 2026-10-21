@@ -6,24 +6,26 @@ use App\Http\Controllers\Controller;
 use App\Models\Driver;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class DriverController extends Controller
 {
-    private function ensureAdmin(Request $request): void
+    private function driversFor(Request $request)
     {
-        abort_unless(
-            $request->user()?->role === 'admin',
-            403,
-            'غير مصرح لك بتنفيذ هذه العملية.'
-        );
+        $query = Driver::query();
+
+        if ($request->user()?->role !== 'admin') {
+            $query->where('created_by', $request->user()->id);
+        }
+
+        return $query;
     }
 
     public function index(Request $request)
     {
-        $this->ensureAdmin($request);
-
-        $drivers = Driver::with('vehicles')
+        $drivers = $this->driversFor($request)
+            ->with('vehicles')
             ->orderByDesc('id')
             ->paginate(15);
 
@@ -32,8 +34,6 @@ class DriverController extends Controller
 
     public function store(Request $request)
     {
-        $this->ensureAdmin($request);
-
         $data = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'job_title' => ['nullable', 'string', 'max:255'],
@@ -66,9 +66,8 @@ class DriverController extends Controller
 
     public function show(Request $request, string $id)
     {
-        $this->ensureAdmin($request);
-
-        $driver = Driver::with(['vehicles', 'badges'])
+        $driver = $this->driversFor($request)
+            ->with(['vehicles', 'badges', 'creator'])
             ->findOrFail($id);
 
         return response()->json(['driver' => $driver]);
@@ -76,9 +75,7 @@ class DriverController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $this->ensureAdmin($request);
-
-        $driver = Driver::findOrFail($id);
+        $driver = $this->driversFor($request)->findOrFail($id);
 
         $data = $request->validate([
             'full_name' => ['sometimes', 'required', 'string', 'max:255'],
@@ -101,28 +98,44 @@ class DriverController extends Controller
         ]);
 
         if ($request->hasFile('photo')) {
+            if ($driver->photo) {
+                Storage::disk('public')->delete($driver->photo);
+            }
+
             $data['photo'] = $request->file('photo')
                 ->store('drivers', 'public');
+        } elseif (array_key_exists('photo', $data) && $driver->photo) {
+            Storage::disk('public')->delete($driver->photo);
         }
 
         $driver->update($data);
+        $driver->badges()->update([
+            'driver_name' => $driver->full_name,
+            'job_title' => $driver->job_title,
+            'person_type' => $driver->person_type,
+            'driver_photo' => $driver->photo,
+            'national_id' => $driver->national_id,
+            'license_number' => $driver->license_number,
+        ]);
 
         return response()->json([
             'message' => 'تم تحديث بيانات السائق بنجاح.',
-            'driver' => $driver->fresh(),
+            'driver' => $driver->fresh()->load('vehicles'),
         ]);
     }
 
     public function destroy(Request $request, string $id)
     {
-        $this->ensureAdmin($request);
-
-        $driver = Driver::findOrFail($id);
+        $driver = $this->driversFor($request)->findOrFail($id);
 
         if ($driver->badges()->exists()) {
             return response()->json([
                 'message' => 'لا يمكن حذف سائق مرتبط ببطاقات. احذف البطاقات المرتبطة أولاً.',
             ], 422);
+        }
+
+        if ($driver->photo) {
+            Storage::disk('public')->delete($driver->photo);
         }
 
         $driver->delete();
