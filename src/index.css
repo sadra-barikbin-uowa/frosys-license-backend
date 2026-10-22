@@ -2,6 +2,18 @@
 
 @theme {
   --font-sans: "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  --color-indigo-50: #f4f6fa;
+  --color-indigo-100: #e6ebf2;
+  --color-indigo-200: #cbd5e3;
+  --color-indigo-300: #a5b5cd;
+  --color-indigo-400: #7189ad;
+  --color-indigo-500: #49658f;
+  --color-indigo-600: #0b254e;
+  --color-indigo-700: #091f42;
+  --color-indigo-800: #071a37;
+  --color-indigo-900: #04132c;
+  --color-indigo-950: #020b1b;
+  --color-uowa-gold: #febe35;
 }
 
 /* سطح البطاقة الموحّد: حدّ ناعم + ظل خفيف */
@@ -19,7 +31,7 @@
   transition: box-shadow 0.2s, transform 0.2s;
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 0 1px rgb(165 180 252 / 0.7), 0 12px 28px -12px rgb(79 70 229 / 0.28);
+    box-shadow: 0 0 0 1px rgb(165 181 205 / 0.7), 0 12px 28px -12px rgb(11 37 78 / 0.28);
   }
 }
 
@@ -61,7 +73,7 @@ thead th:last-child {
 }
 
 ::selection {
-  background: #c7d2fe;
+  background: #cbd5e3;
 }
 
 ::-webkit-scrollbar {
@@ -81,7 +93,7 @@ thead th:last-child {
 
 /* حلقة تركيز واضحة عند التنقل بالكيبورد (حقول الإدخال لها تنسيقها الخاص) */
 :focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid #0b254e;
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -97,7 +109,7 @@ textarea:focus-visible {
   inset-inline-start: 1rem;
   top: -4rem;
   z-index: 100;
-  background: #4338ca;
+  background: #0b254e;
   color: #fff;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;

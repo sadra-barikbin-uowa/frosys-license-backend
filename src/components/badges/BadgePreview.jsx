@@ -19,7 +19,7 @@ const STATUS_DOT = {
 	[BADGE_STATUS.SUSPENDED]: "bg-slate-400",
 };
 
-const DEFAULT_COLOR = "#4338ca";
+const DEFAULT_COLOR = "#0b254e";
 
 const headerBackground = (color) =>
 	`linear-gradient(115deg, ${color}, color-mix(in srgb, ${color} 72%, #101828))`;

@@ -54,12 +54,12 @@ const Login = () => {
 
 	return (
 		<div
-			className="min-h-dvh bg-linear-to-br from-slate-900 via-indigo-900 to-indigo-700 flex items-center justify-center p-4"
+			className="min-h-dvh bg-linear-to-br from-indigo-950 via-indigo-900 to-indigo-700 flex items-center justify-center p-4"
 			dir="rtl"
 		>
 			<main className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl shadow-indigo-950/30 overflow-hidden grid grid-cols-1 lg:grid-cols-[1.05fr_1fr]">
 				{/* الجانب الترويجي */}
-				<div className="hidden lg:flex flex-col justify-between bg-linear-to-br from-indigo-700 via-indigo-600 to-violet-700 p-10 text-white relative overflow-hidden">
+				<div className="hidden lg:flex flex-col justify-between bg-linear-to-br from-indigo-900 via-indigo-700 to-indigo-600 p-10 text-white relative overflow-hidden">
 					<div aria-hidden="true" className="absolute -top-20 -left-20 w-64 h-64 rounded-full bg-white/10" />
 					<div aria-hidden="true" className="absolute -bottom-16 -right-10 w-56 h-56 rounded-full bg-white/5" />
 					<div
@@ -87,7 +87,7 @@ const Login = () => {
 						<ul className="mt-8 flex flex-col gap-3.5">
 							{FEATURES.map(({ icon: Icon, text }) => (
 								<li key={text} className="flex items-center gap-3 text-sm text-indigo-50">
-									<span className="w-9 h-9 rounded-xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center shrink-0">
+									<span className="w-9 h-9 rounded-xl bg-uowa-gold text-indigo-950 flex items-center justify-center shrink-0">
 										<Icon size={17} />
 									</span>
 									{text}

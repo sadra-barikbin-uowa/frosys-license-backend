@@ -13,7 +13,7 @@ import { defaultSettings } from "../../services/settingsService";
 import { todayISO, addYears } from "../../utils/formatDate";
 import { getErrorMessage } from "../../utils/errors";
 
-const COLOR_PRESETS = ["#4338ca", "#0f766e", "#0369a1", "#be123c", "#b45309", "#334155"];
+const COLOR_PRESETS = ["#0b254e", "#0f766e", "#0369a1", "#be123c", "#b45309", "#334155"];
 
 // بيانات تجريبية لمعاينة شكل البطاقة بالإعدادات الحالية
 const SAMPLE_BADGE = {

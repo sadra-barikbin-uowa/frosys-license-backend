@@ -20,7 +20,7 @@ const SidebarContent = ({ role, onCloseMobile, isDrawer }) => {
 	return (
 		<div className="flex flex-col h-full">
 			<div className="flex items-center gap-3 px-5 py-5">
-				<div className="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-600 to-violet-600 shadow-md shadow-indigo-500/30 flex items-center justify-center shrink-0 overflow-hidden">
+				<div className="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-600 to-indigo-800 shadow-md shadow-indigo-500/30 flex items-center justify-center shrink-0 overflow-hidden">
 					{settings.logo ? (
 						<img
 							src={settings.logo}
@@ -69,7 +69,7 @@ const SidebarContent = ({ role, onCloseMobile, isDrawer }) => {
 							{isActive && (
 								<span
 									aria-hidden="true"
-									className="absolute inset-y-2 start-0 w-1 rounded-full bg-indigo-600"
+									className="absolute inset-y-2 start-0 w-1 rounded-full bg-uowa-gold"
 								/>
 							)}
 							<span
@@ -89,7 +89,7 @@ const SidebarContent = ({ role, onCloseMobile, isDrawer }) => {
 
 			<div className="border-t border-slate-100 p-3 flex flex-col gap-2">
 				<div className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
-					<div className="w-9 h-9 rounded-full bg-linear-to-br from-indigo-500 to-violet-500 text-white flex items-center justify-center text-sm font-bold shrink-0">
+					<div className="w-9 h-9 rounded-full bg-linear-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center text-sm font-bold shrink-0">
 						{user?.name?.charAt(0) || "؟"}
 					</div>
 					<div className="min-w-0">

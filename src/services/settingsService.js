@@ -7,7 +7,7 @@ export const defaultSettings = {
 	managerSignature: "",
 	managerSignatureColor: "#172554",
 	managerSignatureWidth: 4,
-	badgeColor: "#4338ca",
+	badgeColor: "#0b254e",
 	contactInfo: "",
 	badgeValidityYears: 1,
 	expiringSoonDays: 30,
