@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowRight, AlertCircle } from "lucide-react";
+import { ArrowRight, AlertCircle, ShieldCheck, Users, CreditCard, Car, UserCog } from "lucide-react";
 import PageHeader from "../../components/common/PageHeader";
 import Card from "../../components/common/Card";
 import Input from "../../components/common/Input";
@@ -21,20 +21,43 @@ const roleOptions = [
 	{ value: "supervisor", label: "مشرف" },
 	{ value: "viewer", label: "مستخدم للعرض فقط" },
 ];
-const permissionOptions = [
-	{ value: "drivers.view", label: "عرض السائقين" },
-	{ value: "drivers.create", label: "إضافة سائق" },
-	{ value: "drivers.edit", label: "تعديل سائق" },
-	{ value: "drivers.delete", label: "حذف سائق" },
-	{ value: "badges.view", label: "عرض البطاقات" },
-	{ value: "badges.create", label: "إنشاء بطاقة" },
-	{ value: "badges.edit", label: "تعديل بطاقة" },
-	{ value: "badges.delete", label: "حذف بطاقة" },
-	{ value: "badges.print", label: "طباعة البطاقات" },
-	{ value: "vehicles.view", label: "عرض المركبات" },
-	{ value: "vehicles.manage", label: "إدارة المركبات" },
-	{ value: "users.manage", label: "إدارة المستخدمين" },
+const permissionGroups = [
+	{
+		title: "السائقون",
+		icon: Users,
+		options: [
+			{ value: "drivers.view", label: "عرض السائقين" },
+			{ value: "drivers.create", label: "إضافة سائق" },
+			{ value: "drivers.edit", label: "تعديل سائق" },
+			{ value: "drivers.delete", label: "حذف سائق" },
+		],
+	},
+	{
+		title: "البطاقات",
+		icon: CreditCard,
+		options: [
+			{ value: "badges.view", label: "عرض البطاقات" },
+			{ value: "badges.create", label: "إنشاء بطاقة" },
+			{ value: "badges.edit", label: "تعديل بطاقة" },
+			{ value: "badges.delete", label: "حذف بطاقة" },
+			{ value: "badges.print", label: "طباعة البطاقات" },
+		],
+	},
+	{
+		title: "المركبات",
+		icon: Car,
+		options: [
+			{ value: "vehicles.view", label: "عرض المركبات" },
+			{ value: "vehicles.manage", label: "إدارة المركبات" },
+		],
+	},
+	{
+		title: "المستخدمون",
+		icon: UserCog,
+		options: [{ value: "users.manage", label: "إدارة المستخدمين" }],
+	},
 ];
+const viewerPermissions = ["drivers.view", "badges.view", "vehicles.view"];
 
 const validate = (form, isEditing) => {
 	const errors = {};
@@ -196,25 +219,87 @@ const AdminEmployeeForm = () => {
 						required
 					/>
 					{values.role !== "admin" && (
-						<label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-							الصلاحيات الإضافية
-							<select
-								multiple
-								value={values.permissions}
-								onChange={(event) =>
-									setForm((current) => ({
-										...(current ?? values),
-										permissions: Array.from(event.target.selectedOptions, (option) => option.value),
-									}))
-								}
-								className="min-h-40 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
-							>
-								{permissionOptions.map(({ value, label }) => (
-									<option key={value} value={value}>{label}</option>
-								))}
-							</select>
-							<span className="text-xs font-normal text-slate-500">استخدم Ctrl أو Command لاختيار عدة صلاحيات. لا تمنح الاختيارات صلاحيات إضافية خارج القائمة المحددة.</span>
-						</label>
+						<section
+							aria-labelledby="additional-permissions-title"
+							className="overflow-hidden rounded-2xl border border-indigo-100 bg-slate-50/70"
+						>
+							<div className="flex items-start justify-between gap-3 border-b border-slate-200/80 bg-white px-4 py-4 sm:px-5">
+								<div className="flex items-start gap-3">
+									<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+										<ShieldCheck size={19} />
+									</span>
+									<div>
+										<h2 id="additional-permissions-title" className="text-sm font-bold text-slate-800">
+											الصلاحيات الإضافية
+										</h2>
+										<p className="mt-1 text-xs leading-5 text-slate-500">
+											اختر ما يحتاجه هذا المستخدم إلى جانب صلاحيات دوره الأساسية.
+										</p>
+									</div>
+								</div>
+								<span className="shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+									{values.permissions.length} محددة
+								</span>
+							</div>
+
+							<div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4">
+								{permissionGroups.map(({ title, icon: Icon, options }) => {
+									const availableOptions = values.role === "viewer"
+										? options.filter(({ value }) => viewerPermissions.includes(value))
+										: options;
+
+									if (!availableOptions.length) return null;
+
+									return (
+										<fieldset key={title} className="rounded-xl border border-slate-200 bg-white p-3.5">
+											<legend className="sr-only">{title}</legend>
+											<div className="mb-2.5 flex items-center gap-2 text-xs font-bold text-slate-700">
+												<Icon size={15} className="text-indigo-500" />
+												{title}
+											</div>
+											<div className="grid gap-1.5">
+												{availableOptions.map(({ value, label }) => {
+													const checked = values.permissions.includes(value);
+													return (
+														<label
+															key={value}
+															className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-2 text-xs transition-colors ${
+																checked
+																	? "border-indigo-200 bg-indigo-50/70 text-indigo-800"
+																	: "border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50"
+															}`}
+														>
+															<input
+																type="checkbox"
+																checked={checked}
+																onChange={() =>
+																	setForm((current) => {
+																		const currentPermissions = current?.permissions ?? values.permissions;
+																		return {
+																			...(current ?? values),
+																			permissions: checked
+																				? currentPermissions.filter((permission) => permission !== value)
+																				: [...currentPermissions, value],
+																		};
+																	})
+																}
+																className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
+															/>
+															<span>{label}</span>
+														</label>
+													);
+												})}
+											</div>
+										</fieldset>
+									);
+								})}
+							</div>
+							<p className="px-4 pb-4 text-[11px] leading-5 text-slate-500 sm:px-5">
+								{values.role === "viewer"
+									? "يمكن منح مستخدم العرض صلاحيات العرض فقط."
+									: "الصلاحيات الإضافية تُمنح لهذا المستخدم فقط ولا تغيّر صلاحيات بقية المستخدمين."}
+							</p>
+						</section>
 					)}
 					<Input
 						label={isEditing ? "كلمة مرور جديدة (اختياري)" : "كلمة المرور"}

@@ -20,8 +20,7 @@ const getEmployeeFromResponse = (result) => {
 export const employeeService = {
     async getEmployees() {
         return (await getApiCollection("/employees"))
-            .map(normalizeEmployee)
-            .filter((employee) => ["employee", "supervisor", "viewer"].includes(employee.role));
+            .map(normalizeEmployee);
     },
 
     async getEmployeeById(id) {
@@ -33,7 +32,7 @@ export const employeeService = {
 
         const employee = normalizeEmployee(result.employee);
 
-        return ["employee", "supervisor", "viewer"].includes(employee.role) ? employee : null;
+        return employee;
     },
 
     async createEmployee(data) {
