@@ -18,6 +18,7 @@ const BadgeTable = ({
 	onSuspend,
 	onReactivate,
 	onDelete,
+	canPrint = false,
 	emptyText = "لا توجد بطاقات مسجلة",
 }) => {
 	if (!badges.length) {
@@ -90,14 +91,16 @@ const BadgeTable = ({
 										>
 											<Eye size={15} />
 										</Link>
-										<Link
-											to={`${basePath}/${badge.id}?print=1`}
-											title="طباعة"
-											aria-label={`طباعة بطاقة ${badge.driverName}`}
-											className={`${iconButton} hover:bg-slate-100 text-slate-500`}
-										>
-											<Printer size={15} />
-										</Link>
+										{canPrint && (
+											<Link
+												to={`${basePath}/${badge.id}?print=1`}
+												title="طباعة"
+												aria-label={`طباعة بطاقة ${badge.driverName}`}
+												className={`${iconButton} hover:bg-slate-100 text-slate-500`}
+											>
+												<Printer size={15} />
+											</Link>
+										)}
 										{computeBadgeStatus(badge) === BADGE_STATUS.SUSPENDED
 											? onReactivate && (
 													<button
@@ -186,15 +189,17 @@ const BadgeTable = ({
 								<Button to={`${basePath}/${badge.id}`} variant="secondary" size="sm" icon={Eye} className="flex-1">
 									عرض
 								</Button>
-								<Button
-									to={`${basePath}/${badge.id}?print=1`}
-									variant="outline"
-									size="sm"
-									icon={Printer}
-									className="flex-1"
-								>
-									طباعة
-								</Button>
+								{canPrint && (
+									<Button
+										to={`${basePath}/${badge.id}?print=1`}
+										variant="outline"
+										size="sm"
+										icon={Printer}
+										className="flex-1"
+									>
+										طباعة
+									</Button>
+								)}
 								{suspended
 									? onReactivate && (
 											<Button

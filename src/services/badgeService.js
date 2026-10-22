@@ -64,6 +64,10 @@ export const badgeService = {
     return normalizedResponse(result);
   },
 
+  async authorizePrint(id) {
+    await apiRequest(`/badges/${encodeURIComponent(id)}/print`, { method: "POST" });
+  },
+
   async getBadgeByIdForEmployee(id) {
     return this.getBadgeById(id);
   },

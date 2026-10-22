@@ -7,16 +7,20 @@ import LoadingState from "../common/LoadingState";
 import { findActiveLink, getNavLinks } from "./navigation";
 import { useSettings } from "../../hooks/useSettings";
 import { usePageTitle } from "../../hooks/usePageTitle";
+import { useAuth } from "../../hooks/useAuth";
 
 // القالب المشترك لكل صفحات لوحة التحكم. يُستخدم كـ Layout Route فتبقى القائمة الجانبية
 // ثابتة أثناء التنقل بين الصفحات، ويظهر مؤشر التحميل داخل منطقة المحتوى فقط
-const DashboardLayout = ({ role }) => {
+const DashboardLayout = () => {
 	const [mobileOpen, setMobileOpen] = useState(false);
 	const { settings } = useSettings();
+	const { user, can } = useAuth();
 	const { pathname } = useLocation();
 	const closeMobile = useCallback(() => setMobileOpen(false), []);
+	const role = user?.role === "admin" ? "admin" : "employee";
+	const links = getNavLinks(user, can);
 
-	usePageTitle(findActiveLink(getNavLinks(role), pathname)?.label);
+	usePageTitle(findActiveLink(links, pathname)?.label);
 
 	return (
 		<div className="flex min-h-dvh bg-[#f4f6f9]" dir="rtl">

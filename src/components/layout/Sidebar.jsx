@@ -6,10 +6,10 @@ import { useSettings } from "../../hooks/useSettings";
 import { findActiveLink, getNavLinks } from "./navigation";
 
 const SidebarContent = ({ role, onCloseMobile, isDrawer }) => {
-	const { user, logout } = useAuth();
+	const { user, logout, can } = useAuth();
 	const { settings } = useSettings();
 	const { pathname } = useLocation();
-	const links = getNavLinks(role);
+	const links = getNavLinks(user, can);
 	const activeTo = findActiveLink(links, pathname)?.to;
 	const closeRef = useRef(null);
 
@@ -95,7 +95,7 @@ const SidebarContent = ({ role, onCloseMobile, isDrawer }) => {
 					<div className="min-w-0">
 						<p className="text-sm font-semibold text-slate-800 truncate">{user?.name}</p>
 						<p className="text-[11px] text-slate-500">
-							{role === "admin" ? "مدير النظام" : "موظف"}
+							{role === "admin" ? "مدير النظام" : user?.role === "supervisor" ? "مشرف" : user?.role === "viewer" ? "مستخدم للعرض فقط" : "موظف"}
 						</p>
 					</div>
 				</div>

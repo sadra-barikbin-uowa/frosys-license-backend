@@ -4,8 +4,10 @@ import Button from "../common/Button";
 import StatusBadge from "../common/StatusBadge";
 import { formatDate } from "../../utils/formatDate";
 import { vehicleTypeLabel } from "../../data/vehicleTypes";
+import { useAuth } from "../../hooks/useAuth";
 
 const BadgeCard = ({ badge, basePath = "/employee/badges" }) => {
+	const { can } = useAuth();
 	return (
 		<div className="surface-link p-4 flex flex-col gap-3">
 			<div className="flex items-start gap-3">
@@ -42,15 +44,17 @@ const BadgeCard = ({ badge, basePath = "/employee/badges" }) => {
 				>
 					عرض
 				</Button>
-				<Button
-					to={`${basePath}/${badge.id}?print=1`}
-					variant="outline"
-					size="sm"
-					icon={Printer}
-					className="flex-1"
-				>
-					طباعة
-				</Button>
+				{can("badges.print") && (
+					<Button
+						to={`${basePath}/${badge.id}?print=1`}
+						variant="outline"
+						size="sm"
+						icon={Printer}
+						className="flex-1"
+					>
+						طباعة
+					</Button>
+				)}
 			</div>
 		</div>
 	);

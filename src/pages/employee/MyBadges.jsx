@@ -21,7 +21,7 @@ const statusOptions = Object.entries(BADGE_STATUS_LABELS).map(([value, label]) =
 }));
 
 const MyBadges = () => {
-	const { user } = useAuth();
+	const { user, can } = useAuth();
 	// الحالة تُحفظ في الرابط (?status=Expired) فتعمل الروابط القادمة من لوحة التحكم
 	const [searchParams, setSearchParams] = useSearchParams();
 	const status = searchParams.get("status") || "";
@@ -60,9 +60,11 @@ const MyBadges = () => {
 				title="البطاقات الخاصة بي"
 				description="جميع البطاقات التعريفية التي أنشأتها"
 				actions={
-					<Button to="/employee/badges/create" icon={FilePlus2}>
-						إصدار بطاقة
-					</Button>
+					can("badges.create") && (
+						<Button to="/employee/badges/create" icon={FilePlus2}>
+							إصدار بطاقة
+						</Button>
+					)
 				}
 			/>
 

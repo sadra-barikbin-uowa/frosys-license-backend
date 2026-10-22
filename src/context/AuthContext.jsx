@@ -67,9 +67,14 @@ export const AuthProvider = ({ children }) => {
 		}
 	}, []);
 
+	const can = useCallback(
+		(permission) => Boolean(user?.permissions?.includes(permission)),
+		[user],
+	);
+
 	const value = useMemo(
-		() => ({ user, login, logout, revalidate, checkingSession, isAdmin: user?.role === "admin" }),
-		[user, login, logout, revalidate, checkingSession],
+		() => ({ user, login, logout, revalidate, checkingSession, can, isAdmin: user?.role === "admin" }),
+		[user, login, logout, revalidate, checkingSession, can],
 	);
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

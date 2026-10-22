@@ -50,7 +50,7 @@ const InfoRow = ({ icon: Icon, label, value }) => (
 const DriverDetails = ({ role = "employee" }) => {
 	const { id } = useParams();
 	const navigate = useNavigate();
-	const { user } = useAuth();
+	const { user, can } = useAuth();
 	const { showToast } = useToast();
 	const isAdmin = role === "admin";
 	const basePath = `/${role}/drivers`;
@@ -64,14 +64,16 @@ const DriverDetails = ({ role = "employee" }) => {
 			if (!driver) return null;
 			const [vehicle, allBadges] = await Promise.all([
 				driver.vehicleId ? vehicleService.getVehicleById(driver.vehicleId) : null,
-				isAdmin ? badgeService.getBadges() : badgeService.getBadgesByEmployee(user.id),
+				can("badges.view")
+					? (isAdmin ? badgeService.getBadges() : badgeService.getBadgesByEmployee(user.id))
+					: Promise.resolve([]),
 			]);
 			const badges = allBadges
 				.filter((b) => b.driverId === id)
 				.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 			return { driver, vehicle, badges };
 		},
-		[id, isAdmin, user.id],
+		[id, isAdmin, user.id, can],
 	);
 
 	const handleDelete = async () => {
@@ -132,10 +134,12 @@ const DriverDetails = ({ role = "employee" }) => {
 							)}
 						</div>
 						<div className="flex w-full gap-2 pt-1">
-							<Button to={`${basePath}/${id}/edit`} variant="secondary" icon={Pencil} className="flex-1">
-								تعديل
-							</Button>
-							{isAdmin && (
+							{can("drivers.edit") && (
+								<Button to={`${basePath}/${id}/edit`} variant="secondary" icon={Pencil} className="flex-1">
+									تعديل
+								</Button>
+							)}
+							{can("drivers.delete") && (
 								<Button variant="danger" icon={Trash2} onClick={() => setConfirmDelete(true)}>
 									حذف
 								</Button>
@@ -195,16 +199,16 @@ const DriverDetails = ({ role = "employee" }) => {
 					<Card padding="p-5 sm:p-6">
 						<div className="flex items-center justify-between gap-3 mb-4">
 							<h2 className="text-sm font-bold text-slate-800">البطاقة التعريفية</h2>
-							<Button
+							{can("badges.create") && <Button
 								to={`/${role}/badges/create?driver=${id}`}
 								variant="outline"
 								size="sm"
 								icon={FilePlus2}
 							>
 								إصدار بطاقة جديدة
-							</Button>
+							</Button>}
 						</div>
-						{badges.length === 0 ? (
+						{!can("badges.view") || badges.length === 0 ? (
 							<p className="text-sm text-slate-500">لا توجد بطاقة لهذا السائق بعد</p>
 						) : (
 							<ul className="flex flex-col gap-2">
@@ -225,22 +229,22 @@ const DriverDetails = ({ role = "employee" }) => {
 											</div>
 										</div>
 										<div className="flex items-center gap-1 shrink-0">
-											<Link
+											{can("badges.view") && <Link
 												to={`/${role}/badges/${badge.id}`}
 												title="عرض البطاقة"
 												aria-label={`عرض البطاقة ${badge.badgeNumber}`}
 												className="p-2 rounded-md hover:bg-slate-100 text-slate-500"
 											>
 												<Eye size={16} />
-											</Link>
-											<Link
+											</Link>}
+											{can("badges.print") && <Link
 												to={`/${role}/badges/${badge.id}?print=1`}
 												title="طباعة البطاقة"
 												aria-label={`طباعة البطاقة ${badge.badgeNumber}`}
 												className="p-2 rounded-md hover:bg-slate-100 text-slate-500"
 											>
 												<Printer size={16} />
-											</Link>
+											</Link>}
 										</div>
 									</li>
 								))}
@@ -250,7 +254,7 @@ const DriverDetails = ({ role = "employee" }) => {
 				</div>
 			</div>
 
-			{isAdmin && (
+			{can("drivers.delete") && (
 				<ConfirmDialog
 					open={confirmDelete}
 					onClose={() => setConfirmDelete(false)}

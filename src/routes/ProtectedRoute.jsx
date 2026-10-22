@@ -3,10 +3,16 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import LoadingState from "../components/common/LoadingState";
 
-// حارس المسارات: يتطلب تسجيل دخول، ويقيّد الدور عند تمرير `role`.
+const Forbidden = () => (
+	<div role="alert" className="surface p-6 text-center text-sm text-rose-700">
+		ليس لديك صلاحية الوصول إلى هذه الصفحة.
+	</div>
+);
+
+// حارس المسارات: يتطلب تسجيل الدخول، ويمكنه تقييد الدور أو الصلاحية.
 // يُستخدم كـ Layout Route (عبر Outlet) أو يغلّف children مباشرة.
-const ProtectedRoute = ({ role, children }) => {
-	const { user, revalidate, checkingSession } = useAuth();
+const ProtectedRoute = ({ role, permission, children }) => {
+	const { user, revalidate, checkingSession, can } = useAuth();
 	const { pathname } = useLocation();
 
 	// عند كل تنقل نتأكد أن الحساب ما زال موجودًا وفعّالًا (لم يُحذف/يُوقف من المدير)
@@ -29,6 +35,10 @@ const ProtectedRoute = ({ role, children }) => {
 				replace
 			/>
 		);
+	}
+
+	if (permission && !(Array.isArray(permission) ? permission.some(can) : can(permission))) {
+		return <Forbidden />;
 	}
 
 	return children ?? <Outlet />;

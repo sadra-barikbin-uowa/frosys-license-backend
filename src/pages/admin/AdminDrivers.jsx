@@ -10,8 +10,10 @@ import DriverTable from "../../components/drivers/DriverTable";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { driverService } from "../../services/driverService";
 import { matchesQuery } from "../../utils/search";
+import { useAuth } from "../../hooks/useAuth";
 
 const AdminDrivers = () => {
+	const { can } = useAuth();
 	const [query, setQuery] = useState("");
 	const deferredQuery = useDeferredValue(query);
 	const {
@@ -35,9 +37,11 @@ const AdminDrivers = () => {
 				title="السائقون"
 				description="جميع السائقين المسجّلين في النظام"
 				actions={
-					<Button to="/admin/drivers/add" icon={UserPlus}>
-						إضافة سائق
-					</Button>
+					can("drivers.create") && (
+						<Button to="/admin/drivers/add" icon={UserPlus}>
+							إضافة سائق
+						</Button>
+					)
 				}
 			/>
 

@@ -17,6 +17,7 @@ import { employeeService } from "../../services/employeeService";
 import { VEHICLE_TYPES } from "../../data/vehicleTypes";
 import { BADGE_STATUS, BADGE_STATUS_LABELS } from "../../utils/badgeStatus";
 import { matchesQuery } from "../../utils/search";
+import { useAuth } from "../../hooks/useAuth";
 
 const statusOptions = Object.entries(BADGE_STATUS_LABELS).map(([value, label]) => ({
 	value,
@@ -49,6 +50,7 @@ const CONFIRM_TEXT = {
 };
 
 const AdminBadges = () => {
+	const { can } = useAuth();
 	const { showToast } = useToast();
 	// الحالة تُحفظ في الرابط (?status=Expired) فتعمل الروابط القادمة من لوحة التحكم
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -63,11 +65,11 @@ const AdminBadges = () => {
 		async () => {
 			const [badges, employees] = await Promise.all([
 				badgeService.getBadges(),
-				employeeService.getEmployees(),
+				can("users.manage") ? employeeService.getEmployees() : Promise.resolve([]),
 			]);
 			return { badges, employees };
 		},
-		[],
+		[can],
 		{ badges: [], employees: [] },
 	);
 	const { badges, employees } = data;
@@ -122,9 +124,11 @@ const AdminBadges = () => {
 				title="جميع البطاقات"
 				description="عرض ومتابعة جميع البطاقات التي أنشأها الموظفون"
 				actions={
-					<Button to="/admin/badges/create" icon={FilePlus2}>
-						إنشاء بطاقة
-					</Button>
+					can("badges.create") && (
+						<Button to="/admin/badges/create" icon={FilePlus2}>
+							إنشاء بطاقة
+						</Button>
+					)
 				}
 			/>
 
@@ -186,9 +190,10 @@ const AdminBadges = () => {
 						basePath="/admin/badges"
 						showEmployee
 						emptyText={hasFilters ? "لا توجد بطاقات مطابقة للفلاتر" : "لا توجد بطاقات مسجلة"}
-						onSuspend={(badge) => setConfirmTarget({ badge, action: "suspend" })}
-						onReactivate={(badge) => setConfirmTarget({ badge, action: "reactivate" })}
-						onDelete={(badge) => setConfirmTarget({ badge, action: "delete" })}
+						canPrint={can("badges.print")}
+						onSuspend={can("badges.edit") ? (badge) => setConfirmTarget({ badge, action: "suspend" }) : undefined}
+						onReactivate={can("badges.edit") ? (badge) => setConfirmTarget({ badge, action: "reactivate" }) : undefined}
+						onDelete={can("badges.delete") ? (badge) => setConfirmTarget({ badge, action: "delete" }) : undefined}
 					/>
 				)}
 			</Card>

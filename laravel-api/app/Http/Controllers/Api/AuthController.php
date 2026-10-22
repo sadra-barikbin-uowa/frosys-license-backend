@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Permission;
 
 class AuthController extends Controller
 {
@@ -20,8 +21,8 @@ class AuthController extends Controller
         $user = User::where('username', $credentials['username'])->first();
 
         if (
-            !$user ||
-            !Hash::check($credentials['password'], $user->password)
+            ! $user ||
+            ! Hash::check($credentials['password'], $user->password)
         ) {
             throw ValidationException::withMessages([
                 'username' => ['اسم المستخدم أو كلمة المرور غير صحيحة.'],
@@ -45,6 +46,8 @@ class AuthController extends Controller
                 'username' => $user->username,
                 'jobTitle' => $user->job_title,
                 'role' => $user->role,
+                'roles' => $user->getRoleNames()->values(),
+                'permissions' => $this->permissionsFor($user),
                 'status' => $user->status,
             ],
         ]);
@@ -61,9 +64,24 @@ class AuthController extends Controller
                 'username' => $user->username,
                 'jobTitle' => $user->job_title,
                 'role' => $user->role,
+                'roles' => $user->getRoleNames()->values(),
+                'permissions' => $this->permissionsFor($user),
                 'status' => $user->status,
             ],
         ]);
+    }
+
+    private function permissionsFor(User $user): array
+    {
+        if ($user->hasRole('admin')) {
+            return Permission::query()
+                ->where('guard_name', 'web')
+                ->orderBy('name')
+                ->pluck('name')
+                ->all();
+        }
+
+        return $user->getAllPermissions()->pluck('name')->sort()->values()->all();
     }
 
     public function logout(Request $request)

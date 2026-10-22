@@ -20,7 +20,7 @@ import { getErrorMessage } from "../../utils/errors";
 import { validateBadgeDates } from "../../utils/validation";
 
 const CreateBadge = ({ role = "employee" }) => {
-	const { user } = useAuth();
+	const { user, can } = useAuth();
 	const { settings } = useSettings();
 	const { showToast } = useToast();
 	const navigate = useNavigate();
@@ -39,11 +39,13 @@ const CreateBadge = ({ role = "employee" }) => {
 		async () => {
 			const [drivers, badges] = await Promise.all([
 				role === "admin" ? driverService.getDrivers() : driverService.getDriversByEmployee(user.id),
-				role === "admin" ? badgeService.getBadges() : badgeService.getBadgesByEmployee(user.id),
+				can("badges.view")
+					? (role === "admin" ? badgeService.getBadges() : badgeService.getBadgesByEmployee(user.id))
+					: Promise.resolve([]),
 			]);
 			return { drivers, badges };
 		},
-		[user.id, role],
+		[user.id, role, can],
 		{ drivers: [], badges: [] },
 	);
 	const { drivers, badges } = lists;
@@ -112,7 +114,11 @@ const CreateBadge = ({ role = "employee" }) => {
 				createdByName: user.name,
 			});
 			showToast("تم إنشاء البطاقة بنجاح", "success");
-			navigate(`/${role}/badges/${newBadge.id}`);
+			navigate(
+				can("badges.view")
+					? `/${role}/badges/${newBadge.id}`
+					: `/${role}/drivers/${selectedDriver.id}`,
+			);
 		} catch (err) {
 			console.error(err);
 			showToast(getErrorMessage(err, "حدث خطأ أثناء إنشاء البطاقة"), "error");

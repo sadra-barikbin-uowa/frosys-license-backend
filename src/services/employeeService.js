@@ -21,7 +21,7 @@ export const employeeService = {
     async getEmployees() {
         return (await getApiCollection("/employees"))
             .map(normalizeEmployee)
-            .filter((employee) => employee.role === "employee");
+            .filter((employee) => ["employee", "supervisor", "viewer"].includes(employee.role));
     },
 
     async getEmployeeById(id) {
@@ -33,7 +33,7 @@ export const employeeService = {
 
         const employee = normalizeEmployee(result.employee);
 
-        return employee.role === "employee" ? employee : null;
+        return ["employee", "supervisor", "viewer"].includes(employee.role) ? employee : null;
     },
 
     async createEmployee(data) {
@@ -42,13 +42,10 @@ export const employeeService = {
             username: data.username.trim(),
             job_title: data.jobTitle?.trim() ?? data.job_title?.trim() ?? "",
             password: data.password,
-            role: "employee",
+            role: data.role || "employee",
+            permissions: data.permissions || [],
             status: "Active",
         };
-
-        if (data.email) {
-            payload.email = data.email.trim();
-        }
 
         const result = await apiRequest("/employees", {
             method: "POST",
@@ -79,16 +76,16 @@ export const employeeService = {
             payload.password = data.password;
         }
 
-        if (data.email !== undefined) {
-            payload.email = data.email?.trim() || null;
-        }
-
         if (data.status !== undefined) {
             payload.status = data.status;
         }
 
         if (data.role !== undefined) {
             payload.role = data.role;
+        }
+
+        if (data.permissions !== undefined) {
+            payload.permissions = data.permissions;
         }
 
         const result = await apiRequest(

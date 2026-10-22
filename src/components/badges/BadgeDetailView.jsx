@@ -24,7 +24,7 @@ import { required, validateBadgeDates } from "../../utils/validation";
 
 const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 	const navigate = useNavigate();
-	const { user } = useAuth();
+	const { user, can } = useAuth();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const { showToast } = useToast();
 	// آخر نسخة محفوظة من البطاقة بعد التعديل (تُتجاهل إذا تغيّرت البطاقة المعروضة)
@@ -40,15 +40,32 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 	// الرابط ?print=1 يفتح نافذة الطباعة مرة واحدة، ثم نزيل المعامل حتى لا تتكرر الطباعة عند إعادة التحميل
 	const shouldPrint = searchParams.get("print") === "1";
 	useEffect(() => {
-		if (!shouldPrint || !badge) return undefined;
+		if (!shouldPrint || !badge || !can("badges.print")) return undefined;
 		const timer = setTimeout(async () => {
-			await printBadge();
-			setSearchParams({}, { replace: true });
+			try {
+				await badgeService.authorizePrint(badge.id);
+				await printBadge();
+			} catch (error) {
+				console.error(error);
+				showToast(getErrorMessage(error, "لا تملك صلاحية طباعة هذه البطاقة"), "error");
+			} finally {
+				setSearchParams({}, { replace: true });
+			}
 		}, 400);
 		return () => clearTimeout(timer);
-	}, [shouldPrint, badge, setSearchParams]);
+	}, [shouldPrint, badge, setSearchParams, can, showToast]);
 
 	if (!currentBadge) return null;
+
+	const handlePrint = async () => {
+		try {
+			await badgeService.authorizePrint(currentBadge.id);
+			await printBadge();
+		} catch (error) {
+			console.error(error);
+			showToast(getErrorMessage(error, "لا تملك صلاحية طباعة هذه البطاقة"), "error");
+		}
+	};
 
 	const startEditing = () => {
 		setDraft({
@@ -81,23 +98,29 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 		setSaving(true);
 		try {
 			const payload = {
-				driverName: draft.driverName.trim(),
-				jobTitle: draft.jobTitle || "",
-				personType: draft.personType,
-				nationalId: draft.nationalId,
 				badgeNumber: draft.badgeNumber.trim(),
-				licenseNumber: draft.licenseNumber,
-				vehicleType: draft.vehicleType,
-				vehicleNumber: draft.vehicleNumber,
-				vehicleModel: draft.vehicleModel,
-				vehicleColor: draft.vehicleColor ?? draft.color,
 				issueDate: draft.issueDate,
 				expiryDate: draft.expiryDate,
 				status: draft.status,
-				driverPhoto: draft.photo || null,
-				// حقل قديم مكرر للصورة: نحذفه حتى لا يطغى على الصورة الجديدة ولا يضاعف حجم التخزين
-				photo: undefined,
 			};
+			if (can("drivers.edit")) {
+				Object.assign(payload, {
+					driverName: draft.driverName.trim(),
+					jobTitle: draft.jobTitle || "",
+					personType: draft.personType,
+					nationalId: draft.nationalId,
+					licenseNumber: draft.licenseNumber,
+					driverPhoto: draft.photo || null,
+				});
+			}
+			if (can("vehicles.manage")) {
+				Object.assign(payload, {
+					vehicleType: draft.vehicleType,
+					vehicleNumber: draft.vehicleNumber,
+					vehicleModel: draft.vehicleModel,
+					vehicleColor: draft.vehicleColor ?? draft.color,
+				});
+			}
 			const updated = isAdmin
 				? await badgeService.updateBadge(currentBadge.id, payload)
 				: await badgeService.updateBadgeForEmployee(currentBadge.id, user.id, payload);
@@ -152,17 +175,21 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 					<ArrowRight size={16} /> رجوع
 				</Link>
 				<div className="flex flex-wrap items-center gap-2">
-					{isAdmin && (
+					{can("badges.delete") && (
 						<Button icon={Trash2} variant="danger" onClick={() => setConfirmDelete(true)}>
 							حذف
 						</Button>
 					)}
-					<Button icon={Pencil} variant="secondary" onClick={startEditing}>
-						تعديل بيانات البطاقة
-					</Button>
-					<Button icon={Printer} onClick={() => printBadge()}>
-						طباعة البطاقة
-					</Button>
+					{can("badges.edit") && (
+						<Button icon={Pencil} variant="secondary" onClick={startEditing}>
+							تعديل بيانات البطاقة
+						</Button>
+					)}
+					{can("badges.print") && (
+						<Button icon={Printer} onClick={handlePrint}>
+							طباعة البطاقة
+						</Button>
+					)}
 				</div>
 			</div>
 
@@ -239,6 +266,8 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 					<EditBadgeForm
 						data={draft}
 						errors={errors}
+						canEditDriver={can("drivers.edit")}
+						canManageVehicle={can("vehicles.manage")}
 						onChange={(field, value) =>
 							setDraft((current) => ({
 								...current,
@@ -264,39 +293,39 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 	);
 };
 
-const EditBadgeForm = ({ data, errors, onChange, setDraftValue }) => (
+const EditBadgeForm = ({ data, errors, onChange, setDraftValue, canEditDriver, canManageVehicle }) => (
 	<div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_342px] gap-6 items-start">
 		<div className="flex flex-col gap-5 min-w-0">
-			<ImageUpload
+			{canEditDriver && <ImageUpload
 				label="صورة السائق"
 				value={data.photo}
 				onChange={(value) => onChange("photo", value)}
 				maxSize={480}
-			/>
+			/>}
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-				<Input
+				{canEditDriver && <Input
 					label="اسم السائق"
 					required
 					value={data.driverName || ""}
 					onChange={setDraftValue("driverName")}
 					error={errors.driverName}
-				/>
-				<Input
+				/>}
+				{canEditDriver && <Input
 					label="العنوان الوظيفي"
 					value={data.jobTitle || ""}
 					onChange={setDraftValue("jobTitle")}
-				/>
-				<Select
+				/>}
+				{canEditDriver && <Select
 					label="صفة حامل البطاقة"
 					value={data.personType || ""}
 					onChange={setDraftValue("personType")}
 					options={PERSON_TYPES}
-				/>
-				<Input
+				/>}
+				{canEditDriver && <Input
 					label="الرقم الوطني"
 					value={data.nationalId || ""}
 					onChange={setDraftValue("nationalId")}
-				/>
+				/>}
 				<Input
 					label="رقم البطاقة"
 					required
@@ -304,32 +333,32 @@ const EditBadgeForm = ({ data, errors, onChange, setDraftValue }) => (
 					onChange={setDraftValue("badgeNumber")}
 					error={errors.badgeNumber}
 				/>
-				<Input
+				{canEditDriver && <Input
 					label="رقم إجازة السوق"
 					value={data.licenseNumber || ""}
 					onChange={setDraftValue("licenseNumber")}
-				/>
-				<Select
+				/>}
+				{canManageVehicle && <Select
 					label="نوع المركبة"
 					value={data.vehicleType || ""}
 					onChange={setDraftValue("vehicleType")}
 					options={VEHICLE_TYPES.map(({ value, label }) => ({ value, label }))}
-				/>
-				<Input
+				/>}
+				{canManageVehicle && <Input
 					label="رقم المركبة"
 					value={data.vehicleNumber || ""}
 					onChange={setDraftValue("vehicleNumber")}
-				/>
-				<Input
+				/>}
+				{canManageVehicle && <Input
 					label="موديل المركبة"
 					value={data.vehicleModel || ""}
 					onChange={setDraftValue("vehicleModel")}
-				/>
-				<Input
+				/>}
+				{canManageVehicle && <Input
 					label="لون المركبة"
 					value={data.vehicleColor || data.color || ""}
 					onChange={setDraftValue("vehicleColor")}
-				/>
+				/>}
 				<Input
 					label="تاريخ الإصدار"
 					type="date"

@@ -9,8 +9,8 @@ use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class BadgeController extends Controller
 {
@@ -78,7 +78,7 @@ class BadgeController extends Controller
 
         $vehicle = null;
 
-        if (!empty($data['vehicle_id'])) {
+        if (! empty($data['vehicle_id'])) {
             $vehicle = $this->vehiclesFor($request)->findOrFail($data['vehicle_id']);
 
             if (
@@ -95,7 +95,7 @@ class BadgeController extends Controller
             $badge = Badge::create([
                 'public_id' => (string) Str::uuid(),
                 'badge_number' => $data['badge_number']
-                    ?? 'PENDING-' . (string) Str::uuid(),
+                    ?? 'PENDING-'.(string) Str::uuid(),
                 'driver_id' => $driver->id,
                 'vehicle_id' => $vehicle?->id,
                 'driver_name' => $driver->full_name,
@@ -114,7 +114,7 @@ class BadgeController extends Controller
                 'created_by' => $request->user()->id,
             ]);
 
-            if (!isset($data['badge_number'])) {
+            if (! isset($data['badge_number'])) {
                 $badge->badge_number = sprintf('DRV-%s-%05d', date('Y'), $badge->id);
                 $badge->save();
             }
@@ -139,6 +139,19 @@ class BadgeController extends Controller
         ]);
     }
 
+    public function authorizePrint(Request $request, string $id)
+    {
+        abort_unless(
+            $request->user()->can('badges.view'),
+            403,
+            'تحتاج إلى صلاحية عرض البطاقة قبل طباعتها.'
+        );
+
+        $this->badgesFor($request)->findOrFail($id);
+
+        return response()->noContent();
+    }
+
     public function update(Request $request, string $id)
     {
         $badge = $this->badgesFor($request)->findOrFail($id);
@@ -146,6 +159,11 @@ class BadgeController extends Controller
         $request->validate([
             'driver_id' => ['sometimes', 'required', 'integer'],
         ]);
+        abort_if(
+            $request->exists('driver_id') && ! $request->user()->can('drivers.edit'),
+            403,
+            'لا تملك صلاحية تعديل بيانات السائق.'
+        );
         $driverId = $request->input('driver_id', $badge->driver_id);
         $driver = $this->driversFor($request)->findOrFail($driverId);
 
@@ -177,8 +195,38 @@ class BadgeController extends Controller
             'status' => ['sometimes', 'required', Rule::in(['Active', 'Inactive', 'Expired', 'Suspended'])],
         ]);
 
+        $driverFields = [
+            'driver_id',
+            'driver_name',
+            'job_title',
+            'person_type',
+            'driver_photo',
+            'national_id',
+            'license_number',
+        ];
+        abort_if(
+            array_intersect($driverFields, array_keys($data)) &&
+                ! $request->user()->can('drivers.edit'),
+            403,
+            'لا تملك صلاحية تعديل بيانات السائق.'
+        );
+
+        $vehicleFields = [
+            'vehicle_id',
+            'vehicle_type',
+            'vehicle_number',
+            'vehicle_model',
+            'vehicle_color',
+        ];
+        abort_if(
+            array_intersect($vehicleFields, array_keys($data)) &&
+                ! $request->user()->can('vehicles.manage'),
+            403,
+            'لا تملك صلاحية إدارة المركبات.'
+        );
+
         $vehicle = array_key_exists('vehicle_id', $data)
-            ? (!empty($data['vehicle_id']) ? $this->vehiclesFor($request)->findOrFail($data['vehicle_id']) : null)
+            ? (! empty($data['vehicle_id']) ? $this->vehiclesFor($request)->findOrFail($data['vehicle_id']) : null)
             : ($badge->vehicle_id ? $this->vehiclesFor($request)->findOrFail($badge->vehicle_id) : null);
 
         if (

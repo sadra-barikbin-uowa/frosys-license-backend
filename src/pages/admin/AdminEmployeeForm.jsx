@@ -4,6 +4,7 @@ import { ArrowRight, AlertCircle } from "lucide-react";
 import PageHeader from "../../components/common/PageHeader";
 import Card from "../../components/common/Card";
 import Input from "../../components/common/Input";
+import Select from "../../components/common/Select";
 import Button from "../../components/common/Button";
 import EmptyState from "../../components/common/EmptyState";
 import ErrorState from "../../components/common/ErrorState";
@@ -14,6 +15,26 @@ import { employeeService } from "../../services/employeeService";
 import { AppError, getErrorMessage } from "../../utils/errors";
 
 const MIN_PASSWORD = 8;
+const roleOptions = [
+	{ value: "admin", label: "مدير النظام" },
+	{ value: "employee", label: "موظف" },
+	{ value: "supervisor", label: "مشرف" },
+	{ value: "viewer", label: "مستخدم للعرض فقط" },
+];
+const permissionOptions = [
+	{ value: "drivers.view", label: "عرض السائقين" },
+	{ value: "drivers.create", label: "إضافة سائق" },
+	{ value: "drivers.edit", label: "تعديل سائق" },
+	{ value: "drivers.delete", label: "حذف سائق" },
+	{ value: "badges.view", label: "عرض البطاقات" },
+	{ value: "badges.create", label: "إنشاء بطاقة" },
+	{ value: "badges.edit", label: "تعديل بطاقة" },
+	{ value: "badges.delete", label: "حذف بطاقة" },
+	{ value: "badges.print", label: "طباعة البطاقات" },
+	{ value: "vehicles.view", label: "عرض المركبات" },
+	{ value: "vehicles.manage", label: "إدارة المركبات" },
+	{ value: "users.manage", label: "إدارة المستخدمين" },
+];
 
 const validate = (form, isEditing) => {
 	const errors = {};
@@ -44,9 +65,11 @@ const AdminEmployeeForm = () => {
 				name: employee.name || "",
 				username: employee.username || "",
 				jobTitle: employee.jobTitle || "",
+				role: employee.role || "employee",
+				permissions: employee.permissions || [],
 				password: "",
 			}
-		: { name: "", username: "", jobTitle: "", password: "" });
+		: { name: "", username: "", jobTitle: "", role: "employee", permissions: [], password: "" });
 
 	const setField = (field) => (event) => {
 		setForm((current) => ({ ...(current ?? values), [field]: event.target.value }));
@@ -66,6 +89,8 @@ const AdminEmployeeForm = () => {
 				name: values.name.trim(),
 				username: values.username.trim(),
 				jobTitle: values.jobTitle.trim(),
+				role: values.role,
+				permissions: values.permissions,
 			};
 			if (values.password) payload.password = values.password;
 
@@ -152,6 +177,45 @@ const AdminEmployeeForm = () => {
 						error={errors.jobTitle}
 						autoComplete="organization-title"
 					/>
+					<Select
+						label="الدور"
+						value={values.role}
+						onChange={(event) => {
+							const role = event.target.value;
+							setForm((current) => ({
+								...(current ?? values),
+								role,
+								permissions: role === "viewer"
+									? values.permissions.filter((permission) =>
+											["drivers.view", "badges.view", "vehicles.view"].includes(permission),
+										)
+									: values.permissions,
+							}));
+						}}
+						options={roleOptions}
+						required
+					/>
+					{values.role !== "admin" && (
+						<label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+							الصلاحيات الإضافية
+							<select
+								multiple
+								value={values.permissions}
+								onChange={(event) =>
+									setForm((current) => ({
+										...(current ?? values),
+										permissions: Array.from(event.target.selectedOptions, (option) => option.value),
+									}))
+								}
+								className="min-h-40 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+							>
+								{permissionOptions.map(({ value, label }) => (
+									<option key={value} value={value}>{label}</option>
+								))}
+							</select>
+							<span className="text-xs font-normal text-slate-500">استخدم Ctrl أو Command لاختيار عدة صلاحيات. لا تمنح الاختيارات صلاحيات إضافية خارج القائمة المحددة.</span>
+						</label>
+					)}
 					<Input
 						label={isEditing ? "كلمة مرور جديدة (اختياري)" : "كلمة المرور"}
 						type="password"
