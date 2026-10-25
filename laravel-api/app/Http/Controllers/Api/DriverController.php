@@ -42,9 +42,9 @@ class DriverController extends Controller
             'birth_date' => ['nullable', 'date'],
             'phone' => ['required', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:1000'],
-            'license_number' => ['required', 'string', 'max:100', 'unique:drivers,license_number'],
-            'license_issue' => ['nullable', 'date'],
-            'license_expiry' => ['required', 'date', 'after_or_equal:today'],
+            'identity_document' => ['required', 'image', 'max:5120'],
+            'identity_document_type' => ['required', Rule::in(['university_id', 'administrative_order'])],
+            'identity_document_back' => ['required_if:identity_document_type,university_id', 'image', 'max:5120', 'prohibited_unless:identity_document_type,university_id'],
             'photo' => ['nullable', 'image', 'max:5120'],
         ]);
 
@@ -54,6 +54,13 @@ class DriverController extends Controller
         if ($request->hasFile('photo')) {
             $data['photo'] = $request->file('photo')
                 ->store('drivers', 'public');
+        }
+
+        $data['identity_document'] = $request->file('identity_document')
+            ->store('driver-documents', 'public');
+        if ($request->hasFile('identity_document_back')) {
+            $data['identity_document_back'] = $request->file('identity_document_back')
+                ->store('driver-documents', 'public');
         }
 
         $driver = Driver::create($data);
@@ -88,13 +95,20 @@ class DriverController extends Controller
             'birth_date' => ['sometimes', 'nullable', 'date'],
             'phone' => ['sometimes', 'required', 'string', 'max:50'],
             'address' => ['sometimes', 'nullable', 'string', 'max:1000'],
-            'license_number' => [
-                'sometimes', 'required', 'string', 'max:100',
-                Rule::unique('drivers', 'license_number')->ignore($driver->id),
-            ],
-            'license_issue' => ['sometimes', 'nullable', 'date'],
-            'license_expiry' => ['sometimes', 'required', 'date', 'after_or_equal:today'],
             'photo' => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'identity_document' => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'identity_document_type' => ['sometimes', Rule::in(['university_id', 'administrative_order'])],
+            'identity_document_back' => [
+                Rule::requiredIf(fn () =>
+                    ($request->input('identity_document_type', $driver->identity_document_type) === 'university_id')
+                    && (!$driver->identity_document_back
+                        || ($request->exists('identity_document_back') && !$request->hasFile('identity_document_back')))
+                ),
+                'nullable',
+                'image',
+                'max:5120',
+                'prohibited_unless:identity_document_type,university_id',
+            ],
         ]);
 
         if ($request->hasFile('photo')) {
@@ -108,6 +122,35 @@ class DriverController extends Controller
             Storage::disk('public')->delete($driver->photo);
         }
 
+        if ($request->hasFile('identity_document')) {
+            if ($driver->identity_document) {
+                Storage::disk('public')->delete($driver->identity_document);
+            }
+
+            $data['identity_document'] = $request->file('identity_document')
+                ->store('driver-documents', 'public');
+        } elseif (array_key_exists('identity_document', $data) && $driver->identity_document) {
+            Storage::disk('public')->delete($driver->identity_document);
+        }
+
+        if ($request->hasFile('identity_document_back')) {
+            if ($driver->identity_document_back) {
+                Storage::disk('public')->delete($driver->identity_document_back);
+            }
+            $data['identity_document_back'] = $request->file('identity_document_back')
+                ->store('driver-documents', 'public');
+        } elseif (array_key_exists('identity_document_back', $data) && $driver->identity_document_back) {
+            Storage::disk('public')->delete($driver->identity_document_back);
+            $data['identity_document_back'] = null;
+        }
+
+        if (($data['identity_document_type'] ?? null) === 'administrative_order') {
+            if ($driver->identity_document_back) {
+                Storage::disk('public')->delete($driver->identity_document_back);
+            }
+            $data['identity_document_back'] = null;
+        }
+
         $driver->update($data);
         $driver->badges()->update([
             'driver_name' => $driver->full_name,
@@ -115,7 +158,6 @@ class DriverController extends Controller
             'person_type' => $driver->person_type,
             'driver_photo' => $driver->photo,
             'national_id' => $driver->national_id,
-            'license_number' => $driver->license_number,
         ]);
 
         return response()->json([
@@ -136,6 +178,13 @@ class DriverController extends Controller
 
         if ($driver->photo) {
             Storage::disk('public')->delete($driver->photo);
+        }
+
+        if ($driver->identity_document) {
+            Storage::disk('public')->delete($driver->identity_document);
+        }
+        if ($driver->identity_document_back) {
+            Storage::disk('public')->delete($driver->identity_document_back);
         }
 
         $driver->delete();

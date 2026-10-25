@@ -25,7 +25,6 @@ const DriverTable = ({
 							<th scope="col" className="py-3 px-3 font-medium">السائق</th>
 							<th scope="col" className="py-3 px-3 font-medium">رقم الهوية</th>
 							<th scope="col" className="py-3 px-3 font-medium">الهاتف</th>
-							<th scope="col" className="py-3 px-3 font-medium">رقم الرخصة</th>
 							{showEmployee && (
 								<th scope="col" className="py-3 px-3 font-medium">أضيف بواسطة</th>
 							)}
@@ -54,7 +53,6 @@ const DriverTable = ({
 								</td>
 								<td className="py-3 px-3 text-slate-600 whitespace-nowrap">{driver.nationalId}</td>
 								<td className="py-3 px-3 text-slate-600 whitespace-nowrap">{driver.phone}</td>
-								<td className="py-3 px-3 text-slate-600 whitespace-nowrap">{driver.licenseNumber}</td>
 								{showEmployee && (
 									<td className="py-3 px-3 text-slate-600 whitespace-nowrap">
 										{driver.createdByName}

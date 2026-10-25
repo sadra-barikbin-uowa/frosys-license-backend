@@ -103,7 +103,6 @@ const CreateBadge = ({ role = "employee" }) => {
 				personType: selectedDriver.personType,
 				driverPhoto: selectedDriver.photo,
 				nationalId: selectedDriver.nationalId,
-				licenseNumber: selectedDriver.licenseNumber,
 				vehicleType: vehicle?.vehicleType,
 				vehicleNumber: vehicle?.vehicleNumber,
 				vehicleModel: vehicle?.model,

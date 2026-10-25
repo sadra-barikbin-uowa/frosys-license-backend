@@ -6,7 +6,10 @@ export const required = (value) => {
 };
 
 // يتحقق من بيانات السائق والمركبة قبل إنشاء البطاقة
-export const validateDriverForm = (data) => {
+export const validateDriverForm = (
+	data,
+	{ requireIdentityDocument = true } = {},
+) => {
 	const errors = {};
 
 	if (!required(data.fullName)) errors.fullName = "الاسم الكامل مطلوب";
@@ -17,15 +20,17 @@ export const validateDriverForm = (data) => {
 		errors.phone = "رقم الهاتف غير صحيح";
 
 	if (!required(data.photo)) errors.photo = "صورة السائق مطلوبة";
-
-	if (!required(data.licenseNumber)) errors.licenseNumber = "رقم رخصة القيادة مطلوب";
-	if (!required(data.licenseExpiry)) errors.licenseExpiry = "تاريخ انتهاء الرخصة مطلوب";
+	if (requireIdentityDocument && !required(data.identityDocument))
+		errors.identityDocument = "صورة وجه الهوية الجامعية أو الأمر الإداري مطلوبة";
 	if (
-		required(data.licenseIssue) &&
-		required(data.licenseExpiry) &&
-		data.licenseExpiry < data.licenseIssue
+		data.identityDocumentType === "university_id" &&
+		!required(data.identityDocumentBack)
 	)
-		errors.licenseExpiry = "تاريخ الانتهاء يجب أن يكون بعد تاريخ الإصدار";
+		errors.identityDocumentBack = "صورة ظهر الهوية الجامعية مطلوبة";
+	if (!required(data.vehicleRegistrationFront))
+		errors.vehicleRegistrationFront = "صورة وجه سنوية المركبة مطلوبة";
+	if (!required(data.vehicleRegistrationBack))
+		errors.vehicleRegistrationBack = "صورة ظهر سنوية المركبة مطلوبة";
 
 	if (!required(data.vehicleType)) errors.vehicleType = "نوع المركبة مطلوب";
 	if (!required(data.vehicleNumber)) errors.vehicleNumber = "رقم المركبة مطلوب";

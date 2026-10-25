@@ -11,12 +11,16 @@ const normalizeVehicle = (vehicle) => ({
   createdBy: normalizeApiId(vehicle.created_by ?? vehicle.createdBy),
   createdByName: vehicle.creator?.name ?? vehicle.createdByName ?? "",
   photo: imageUrl(vehicle.photo),
+  registrationFront: imageUrl(vehicle.registration_front ?? vehicle.registrationFront),
+  registrationBack: imageUrl(vehicle.registration_back ?? vehicle.registrationBack),
 });
 
 const vehicleFields = {
   vehicleNumber: "vehicle_number",
   vehicleType: "vehicle_type",
   driverId: "driver_id",
+  registrationFront: "registration_front",
+  registrationBack: "registration_back",
 };
 
 export const vehicleService = {

@@ -22,6 +22,13 @@ function App() {
 				<AuthProvider>
 					<SettingsProvider>
 						<AppRoutes />
+						<footer
+							className="px-4 py-4 text-center text-xs text-slate-500"
+							dir="rtl"
+						>
+							© جميع الحقوق محفوظة جامعة وارث الأنبياء - مركز الحاسبة
+							الألكترونية - شعبة البرمجيات
+						</footer>
 					</SettingsProvider>
 				</AuthProvider>
 			</ToastProvider>

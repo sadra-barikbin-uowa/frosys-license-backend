@@ -162,6 +162,10 @@ textarea:focus-visible {
   display: none;
 }
 
+#print-sticker-area {
+  display: none;
+}
+
 /* Print styles */
 @media print {
   * {
@@ -198,6 +202,82 @@ textarea:focus-visible {
     background: white;
   }
 
+  body.printing-sticker #print-badge-area {
+    display: none !important;
+  }
+
+  body.printing-sticker #print-sticker-area {
+    display: flex !important;
+    position: fixed;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    background: white;
+  }
+
+  body.printing-sticker .badge-sticker {
+    width: 50mm;
+    height: 30mm;
+    padding: 2.5mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5mm;
+    border: 0.3mm solid #0b254e;
+    border-radius: 2mm;
+    color: #0b254e;
+    overflow: hidden;
+  }
+
+  body.printing-sticker .badge-sticker-logo {
+    width: 13mm;
+    height: 13mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    overflow: hidden;
+  }
+
+  body.printing-sticker .badge-sticker-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  body.printing-sticker .badge-sticker-logo svg {
+    width: 10mm;
+    height: 10mm;
+  }
+
+  body.printing-sticker .badge-sticker-details {
+    min-width: 0;
+    text-align: center;
+  }
+
+  body.printing-sticker .badge-sticker-name {
+    max-width: 29mm;
+    margin: 0 0 1mm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 7pt;
+    font-weight: 700;
+  }
+
+  body.printing-sticker .badge-sticker-label {
+    margin: 0 0 0.5mm;
+    font-size: 6pt;
+  }
+
+  body.printing-sticker .badge-sticker-number {
+    margin: 0;
+    font-family: ui-monospace, monospace;
+    font-size: 9pt;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
   /* حجم بطاقة هوية حقيقي 85.6mm × 54mm */
   #print-badge-area .badge-face {
     width: 342px !important;
@@ -212,5 +292,14 @@ textarea:focus-visible {
   @page {
     size: auto;
     margin: 0;
+  }
+
+  @page sticker {
+    size: 50mm 30mm;
+    margin: 0;
+  }
+
+  body.printing-sticker {
+    page: sticker;
   }
 }

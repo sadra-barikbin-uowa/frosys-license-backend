@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Printer, ArrowRight, CreditCard, Pencil, Trash2 } from "lucide-react";
+import { Printer, ArrowRight, CreditCard, Pencil, Trash2, Sticker } from "lucide-react";
 import BadgePreview from "./BadgePreview";
 import PrintBadge from "./PrintBadge";
+import PrintSticker from "./PrintSticker";
 import Button from "../common/Button";
 import Card from "../common/Card";
 import ConfirmDialog from "../common/ConfirmDialog";
@@ -18,7 +19,7 @@ import { PERSON_TYPES, personTypeLabel } from "../../data/personTypes";
 import { badgeService } from "../../services/badgeService";
 import { useToast } from "../../hooks/useToast";
 import { useAuth } from "../../hooks/useAuth";
-import { printBadge } from "../../utils/print";
+import { printBadge, printSticker } from "../../utils/print";
 import { getErrorMessage } from "../../utils/errors";
 import { required, validateBadgeDates } from "../../utils/validation";
 
@@ -67,6 +68,16 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 		}
 	};
 
+	const handlePrintSticker = async () => {
+		try {
+			await badgeService.authorizePrint(currentBadge.id);
+			await printSticker();
+		} catch (error) {
+			console.error(error);
+			showToast(getErrorMessage(error, "تعذر إنشاء الستيكر"), "error");
+		}
+	};
+
 	const startEditing = () => {
 		setDraft({
 			...currentBadge,
@@ -109,7 +120,6 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 					jobTitle: draft.jobTitle || "",
 					personType: draft.personType,
 					nationalId: draft.nationalId,
-					licenseNumber: draft.licenseNumber,
 					driverPhoto: draft.photo || null,
 				});
 			}
@@ -147,7 +157,6 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 		["العنوان الوظيفي", currentBadge.jobTitle],
 		["صفة حامل البطاقة", personTypeLabel(currentBadge.personType)],
 		["رقم الهوية", currentBadge.nationalId],
-		["رقم رخصة القيادة", currentBadge.licenseNumber],
 		["نوع المركبة", vehicleTypeLabel(currentBadge.vehicleType) || "—"],
 		["رقم المركبة", currentBadge.vehicleNumber || "—"],
 		["موديل المركبة", currentBadge.vehicleModel || "—"],
@@ -186,9 +195,14 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 						</Button>
 					)}
 					{can("badges.print") && (
-						<Button icon={Printer} onClick={handlePrint}>
-							طباعة البطاقة
-						</Button>
+						<>
+							<Button icon={Printer} onClick={handlePrint}>
+								طباعة البطاقة
+							</Button>
+							<Button icon={Sticker} variant="secondary" onClick={handlePrintSticker}>
+								إنشاء ستيكر
+							</Button>
+						</>
 					)}
 				</div>
 			</div>
@@ -244,6 +258,7 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 			</div>
 
 			<PrintBadge data={currentBadge} />
+			<PrintSticker data={currentBadge} />
 
 			<Modal
 				open={editing}
@@ -333,11 +348,6 @@ const EditBadgeForm = ({ data, errors, onChange, setDraftValue, canEditDriver, c
 					onChange={setDraftValue("badgeNumber")}
 					error={errors.badgeNumber}
 				/>
-				{canEditDriver && <Input
-					label="رقم إجازة السوق"
-					value={data.licenseNumber || ""}
-					onChange={setDraftValue("licenseNumber")}
-				/>}
 				{canManageVehicle && <Select
 					label="نوع المركبة"
 					value={data.vehicleType || ""}

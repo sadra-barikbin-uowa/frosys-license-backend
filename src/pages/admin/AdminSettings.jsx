@@ -21,7 +21,6 @@ const SAMPLE_BADGE = {
 	personType: "employee",
 	nationalId: "1012345678",
 	badgeNumber: "DRV-2026-00001",
-	licenseNumber: "LIC-445566",
 	vehicleType: "car",
 	vehicleNumber: "ABC 1234",
 	vehicleModel: "تويوتا كامري",

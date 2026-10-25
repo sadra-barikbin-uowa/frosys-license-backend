@@ -17,7 +17,6 @@ class Badge extends Model
         'person_type',
         'driver_photo',
         'national_id',
-        'license_number',
         'vehicle_type',
         'vehicle_number',
         'vehicle_model',

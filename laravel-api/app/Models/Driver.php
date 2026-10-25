@@ -17,9 +17,9 @@ class Driver extends Model
         'birth_date',
         'phone',
         'address',
-        'license_number',
-        'license_issue',
-        'license_expiry',
+        'identity_document',
+        'identity_document_type',
+        'identity_document_back',
         'photo',
         'created_by',
     ];
@@ -28,8 +28,6 @@ class Driver extends Model
     {
         return [
             'birth_date' => 'date:Y-m-d',
-            'license_issue' => 'date:Y-m-d',
-            'license_expiry' => 'date:Y-m-d',
         ];
     }
 

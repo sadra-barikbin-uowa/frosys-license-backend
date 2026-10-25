@@ -16,6 +16,8 @@ class Vehicle extends Model
         'year',
         'color',
         'photo',
+        'registration_front',
+        'registration_back',
         'driver_id',
         'created_by',
     ];

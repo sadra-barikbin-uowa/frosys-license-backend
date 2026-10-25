@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { LogOut, X, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useSettings } from "../../hooks/useSettings";
 import { findActiveLink, getNavLinks } from "./navigation";
+import { badgeRequestService } from "../../services/badgeRequestService";
 
 const SidebarContent = ({ role, onCloseMobile, isDrawer }) => {
 	const { user, logout, can } = useAuth();
@@ -12,6 +13,27 @@ const SidebarContent = ({ role, onCloseMobile, isDrawer }) => {
 	const links = getNavLinks(user, can);
 	const activeTo = findActiveLink(links, pathname)?.to;
 	const closeRef = useRef(null);
+	const [pendingRequests, setPendingRequests] = useState(0);
+
+	useEffect(() => {
+		if (!can("users.manage")) return undefined;
+		let active = true;
+		const loadCount = () => {
+			badgeRequestService.getPendingCount()
+				.then((count) => {
+					if (active) setPendingRequests(count);
+				})
+				.catch((error) => console.error("تعذر تحميل عدد طلبات البطاقات", error));
+		};
+		loadCount();
+		const interval = window.setInterval(loadCount, 60000);
+		window.addEventListener("badge-requests-updated", loadCount);
+		return () => {
+			active = false;
+			window.clearInterval(interval);
+			window.removeEventListener("badge-requests-updated", loadCount);
+		};
+	}, [can, pathname]);
 
 	useEffect(() => {
 		if (isDrawer) closeRef.current?.focus();
@@ -52,7 +74,7 @@ const SidebarContent = ({ role, onCloseMobile, isDrawer }) => {
 
 			<nav aria-label="القائمة الرئيسية" className="flex-1 overflow-y-auto pb-4 px-3 flex flex-col gap-1">
 				<p className="px-3.5 pt-1 pb-2 text-[11px] font-semibold text-slate-400 tracking-wide">القائمة</p>
-				{links.map(({ to, label, icon: Icon }) => {
+				{links.map(({ to, label, icon: Icon, showPendingCount }) => {
 					const isActive = to === activeTo;
 					return (
 						<Link
@@ -81,7 +103,12 @@ const SidebarContent = ({ role, onCloseMobile, isDrawer }) => {
 							>
 								<Icon size={17} />
 							</span>
-							{label}
+							<span className="flex-1">{label}</span>
+							{showPendingCount && pendingRequests > 0 && (
+								<span className="min-w-5 h-5 px-1 rounded-full bg-rose-100 text-rose-700 text-[11px] font-bold flex items-center justify-center">
+									{pendingRequests > 99 ? "99+" : pendingRequests}
+								</span>
+							)}
 						</Link>
 					);
 				})}

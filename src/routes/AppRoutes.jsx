@@ -6,9 +6,11 @@ import { useAuth } from "../hooks/useAuth";
 import ProtectedRoute from "./ProtectedRoute";
 
 const Login = lazy(() => import("../pages/Login"));
+const BadgeRequestForm = lazy(() => import("../pages/BadgeRequestForm"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
 const AdminBadges = lazy(() => import("../pages/admin/AdminBadges"));
+const AdminBadgeRequests = lazy(() => import("../pages/admin/AdminBadgeRequests"));
 const AdminBadgeDetails = lazy(() => import("../pages/admin/AdminBadgeDetails"));
 const AdminDrivers = lazy(() => import("../pages/admin/AdminDrivers"));
 const AdminDriverDetails = lazy(() => import("../pages/admin/AdminDriverDetails"));
@@ -49,12 +51,14 @@ const AppRoutes = () => (
 		<Routes>
 			<Route path="/" element={<Navigate to="/login" replace />} />
 			<Route path="/login" element={<Login />} />
+			<Route path="/badge-request" element={<BadgeRequestForm />} />
 
 			<Route element={<ProtectedRoute />}>
 				<Route element={<DashboardLayout />}>
 					<Route path="/admin" element={<AdminHome />} />
 					<Route path="/admin/dashboard" element={permit("users.manage", <AdminDashboard />)} />
 					<Route path="/admin/badges" element={permit("users.manage", <AdminBadges />)} />
+					<Route path="/admin/badge-requests" element={permit("users.manage", <AdminBadgeRequests />)} />
 					<Route path="/admin/badges/create" element={permit("badges.create", <CreateBadge role="admin" />)} />
 					<Route path="/admin/badges/:id" element={permit("badges.view", <AdminBadgeDetails />)} />
 					<Route path="/admin/drivers" element={permit("drivers.view", <AdminDrivers />)} />

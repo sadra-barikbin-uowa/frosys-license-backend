@@ -48,7 +48,19 @@ export const createApiBody = async (data, fieldMap = {}) => {
     const mapped = Object.fromEntries(
         Object.entries(data).map(([key, value]) => [fieldMap[key] || key, value]),
     );
-    const imageFields = ["photo", "driver_photo", "logo", "manager_signature"];
+    const imageFields = [
+        "photo",
+        "driver_photo",
+        "vehicle_photo",
+        "identity_document",
+        "identity_document_back",
+        "registration_front",
+        "registration_back",
+        "vehicle_registration_front",
+        "vehicle_registration_back",
+        "logo",
+        "manager_signature",
+    ];
     for (const key of imageFields) {
         if (typeof mapped[key] === "string" && /^https?:\/\//i.test(mapped[key])) {
             delete mapped[key];

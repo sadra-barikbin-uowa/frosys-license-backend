@@ -4,9 +4,9 @@ import Select from "../common/Select";
 import { VEHICLE_TYPES } from "../../data/vehicleTypes";
 import { PERSON_TYPES } from "../../data/personTypes";
 import { toLatinDigits } from "../../utils/search";
-import { User, IdCard, Car as CarIcon } from "lucide-react";
+import { User, Car as CarIcon } from "lucide-react";
 
-// نموذج شامل لبيانات السائق + الرخصة + المركبة، يُستخدم في صفحتي
+// نموذج شامل لبيانات السائق والمركبة، يُستخدم في صفحتي
 // إضافة سائق وتعديل سائق. البيانات تُدار بالكامل من الصفحة الأب (Controlled)
 const Section = ({ title, icon: Icon, children }) => (
 	<section className="surface p-4 sm:p-5 flex flex-col gap-4">
@@ -22,6 +22,7 @@ const Section = ({ title, icon: Icon, children }) => (
 
 const DriverForm = ({ data, errors, onChange }) => {
 	const set = (field) => (e) => onChange(field, e.target.value);
+	const isUniversityId = data.identityDocumentType === "university_id";
 	// حقول الأرقام: نحوّل الأرقام العربية (٠١٢) إلى لاتينية ليبقى البحث والتحقق متسقًا
 	const setDigits = (field) => (e) =>
 		onChange(field, toLatinDigits(e.target.value));
@@ -95,32 +96,40 @@ const DriverForm = ({ data, errors, onChange }) => {
 						placeholder="المدينة - الحي - الشارع"
 					/>
 				</div>
-			</Section>
-
-			<Section title="معلومات رخصة القيادة" icon={IdCard}>
-				<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-					<Input
-						label="رقم رخصة القيادة"
-						required
-						value={data.licenseNumber}
-						onChange={setDigits("licenseNumber")}
-						error={errors.licenseNumber}
-						autoComplete="off"
+				<label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+					<input
+						type="checkbox"
+						checked={isUniversityId}
+						onChange={(event) => {
+							const identityDocumentType = event.target.checked
+								? "university_id"
+								: "administrative_order";
+							onChange("identityDocumentType", identityDocumentType);
+							if (!event.target.checked) onChange("identityDocumentBack", null);
+						}}
+						className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
 					/>
-					<Input
-						label="تاريخ الإصدار"
-						type="date"
-						value={data.licenseIssue}
-						onChange={set("licenseIssue")}
+					لدي هوية جامعية
+				</label>
+				<div
+					className={`grid grid-cols-1 ${isUniversityId ? "sm:grid-cols-2" : ""} gap-4`}
+				>
+					<ImageUpload
+						label={`${isUniversityId ? "وجه الهوية الجامعية" : " الأمر الإداري"} *`}
+						value={data.identityDocument}
+						onChange={(val) => onChange("identityDocument", val)}
+						error={errors.identityDocument}
+						maxSize={640}
 					/>
-					<Input
-						label="تاريخ الانتهاء"
-						required
-						type="date"
-						value={data.licenseExpiry}
-						onChange={set("licenseExpiry")}
-						error={errors.licenseExpiry}
-					/>
+					{isUniversityId && (
+						<ImageUpload
+							label="ظهر الهوية الجامعية *"
+							value={data.identityDocumentBack}
+							onChange={(val) => onChange("identityDocumentBack", val)}
+							error={errors.identityDocumentBack}
+							maxSize={640}
+						/>
+					)}
 				</div>
 			</Section>
 
@@ -193,12 +202,22 @@ const DriverForm = ({ data, errors, onChange }) => {
 					/>
 				</div>
 
-				<ImageUpload
-					label="صورة المركبة"
-					value={data.vehiclePhoto}
-					onChange={(val) => onChange("vehiclePhoto", val)}
-					maxSize={640}
-				/>
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+					<ImageUpload
+						label="وجه سنوية المركبة *"
+						value={data.vehicleRegistrationFront}
+						onChange={(val) => onChange("vehicleRegistrationFront", val)}
+						error={errors.vehicleRegistrationFront}
+						maxSize={640}
+					/>
+					<ImageUpload
+						label="ظهر سنوية المركبة *"
+						value={data.vehicleRegistrationBack}
+						onChange={(val) => onChange("vehicleRegistrationBack", val)}
+						error={errors.vehicleRegistrationBack}
+						maxSize={640}
+					/>
+				</div>
 			</Section>
 		</div>
 	);

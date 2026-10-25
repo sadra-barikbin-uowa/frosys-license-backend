@@ -9,10 +9,12 @@ import {
 	Settings,
 	UserPlus,
 	Wallet,
+	FileText,
 } from "lucide-react";
 
 const adminLinks = [
 	{ to: "/admin/dashboard", label: "لوحة التحكم", icon: LayoutDashboard, permission: "users.manage" },
+	{ to: "/admin/badge-requests", label: "طلبات البطاقات", icon: FileText, permission: "users.manage", showPendingCount: true },
 	{ to: "/admin/badges", label: "جميع البطاقات", icon: CreditCard, permission: "users.manage" },
 	{ to: "/admin/badges/create", label: "إنشاء بطاقة", icon: CreditCard, permission: "badges.create" },
 	{ to: "/admin/drivers", label: "السائقون", icon: Users, permission: "users.manage" },

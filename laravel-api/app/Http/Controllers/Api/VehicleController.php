@@ -45,6 +45,8 @@ class VehicleController extends Controller
             'color' => ['nullable', 'string', 'max:100'],
             'driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
             'photo' => ['nullable', 'image', 'max:5120'],
+            'registration_front' => ['required', 'image', 'max:5120'],
+            'registration_back' => ['required', 'image', 'max:5120'],
         ]);
 
         $data['public_id'] = (string) Str::uuid();
@@ -57,6 +59,9 @@ class VehicleController extends Controller
         if ($request->hasFile('photo')) {
             $data['photo'] = $request->file('photo')
                 ->store('vehicles', 'public');
+        }
+        foreach (['registration_front', 'registration_back'] as $field) {
+            $data[$field] = $request->file($field)->store('vehicle-registrations', 'public');
         }
 
         $vehicle = Vehicle::create($data);
@@ -96,6 +101,8 @@ class VehicleController extends Controller
             'color' => ['sometimes', 'nullable', 'string', 'max:100'],
             'driver_id' => ['sometimes', 'nullable', 'integer', 'exists:drivers,id'],
             'photo' => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'registration_front' => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'registration_back' => ['sometimes', 'nullable', 'image', 'max:5120'],
         ]);
 
         if (!empty($data['driver_id'])) {
@@ -111,6 +118,18 @@ class VehicleController extends Controller
                 ->store('vehicles', 'public');
         } elseif (array_key_exists('photo', $data) && $vehicle->photo) {
             Storage::disk('public')->delete($vehicle->photo);
+        }
+
+        foreach (['registration_front', 'registration_back'] as $field) {
+            if ($request->hasFile($field)) {
+                if ($vehicle->{$field}) {
+                    Storage::disk('public')->delete($vehicle->{$field});
+                }
+                $data[$field] = $request->file($field)->store('vehicle-registrations', 'public');
+            } elseif (array_key_exists($field, $data) && $vehicle->{$field}) {
+                Storage::disk('public')->delete($vehicle->{$field});
+                $data[$field] = null;
+            }
         }
 
         $vehicle->update($data);
@@ -139,6 +158,11 @@ class VehicleController extends Controller
 
         if ($vehicle->photo) {
             Storage::disk('public')->delete($vehicle->photo);
+        }
+        foreach (['registration_front', 'registration_back'] as $field) {
+            if ($vehicle->{$field}) {
+                Storage::disk('public')->delete($vehicle->{$field});
+            }
         }
 
         $vehicle->delete();

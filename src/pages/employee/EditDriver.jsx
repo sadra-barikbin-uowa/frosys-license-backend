@@ -58,15 +58,16 @@ const EditDriver = ({ role = "employee" }) => {
 			address: driver.address || "",
 			nationalId: driver.nationalId || "",
 			photo: driver.photo || null,
-			licenseNumber: driver.licenseNumber || "",
-			licenseIssue: driver.licenseIssue || "",
-			licenseExpiry: driver.licenseExpiry || "",
+			identityDocument: driver.identityDocument || null,
+			identityDocumentBack: driver.identityDocumentBack || null,
+			identityDocumentType: driver.identityDocumentType || "administrative_order",
 			vehicleType: vehicle?.vehicleType || "",
 			vehicleNumber: vehicle?.vehicleNumber || "",
 			model: vehicle?.model || "",
 			year: vehicle?.year || "",
 			color: vehicle?.color || "",
-			vehiclePhoto: vehicle?.photo || null,
+			vehicleRegistrationFront: vehicle?.registrationFront || null,
+			vehicleRegistrationBack: vehicle?.registrationBack || null,
 		};
 	}, [loaded]);
 	const data = draft ?? initialData;
@@ -79,7 +80,9 @@ const EditDriver = ({ role = "employee" }) => {
 
 	const handleSave = async () => {
 		if (saving) return;
-		const { isValid, errors: validationErrors } = validateDriverForm(data);
+		const { isValid, errors: validationErrors } = validateDriverForm(data, {
+			requireIdentityDocument: false,
+		});
 		setErrors(validationErrors);
 		if (!isValid) {
 			showToast("الرجاء تعبئة جميع الحقول المطلوبة بشكل صحيح", "error");
@@ -97,9 +100,9 @@ const EditDriver = ({ role = "employee" }) => {
 				address: data.address,
 				nationalId: data.nationalId.trim(),
 				photo: data.photo,
-				licenseNumber: data.licenseNumber.trim(),
-				licenseIssue: data.licenseIssue,
-				licenseExpiry: data.licenseExpiry,
+				identityDocument: data.identityDocument,
+				identityDocumentBack: data.identityDocumentBack,
+				identityDocumentType: data.identityDocumentType,
 			};
 			const updatedDriver =
 				role === "admin"
@@ -113,7 +116,8 @@ const EditDriver = ({ role = "employee" }) => {
 					model: data.model,
 					year: data.year,
 					color: data.color,
-					photo: data.vehiclePhoto,
+					registrationFront: data.vehicleRegistrationFront,
+					registrationBack: data.vehicleRegistrationBack,
 				});
 			}
 			showToast("تم حفظ التعديلات بنجاح", "success");

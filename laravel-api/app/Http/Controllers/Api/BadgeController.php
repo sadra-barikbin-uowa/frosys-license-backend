@@ -103,7 +103,6 @@ class BadgeController extends Controller
                 'person_type' => $driver->person_type,
                 'driver_photo' => $driver->photo,
                 'national_id' => $driver->national_id,
-                'license_number' => $driver->license_number,
                 'vehicle_type' => $vehicle?->vehicle_type,
                 'vehicle_number' => $vehicle?->vehicle_number,
                 'vehicle_model' => $vehicle?->model,
@@ -182,10 +181,6 @@ class BadgeController extends Controller
                 'sometimes', 'nullable', 'string', 'max:100',
                 Rule::unique('drivers', 'national_id')->ignore($driver->id),
             ],
-            'license_number' => [
-                'sometimes', 'nullable', 'string', 'max:100',
-                Rule::unique('drivers', 'license_number')->ignore($driver->id),
-            ],
             'vehicle_type' => ['sometimes', 'nullable', 'string', 'max:100'],
             'vehicle_number' => ['sometimes', 'nullable', 'string', 'max:100'],
             'vehicle_model' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -202,7 +197,6 @@ class BadgeController extends Controller
             'person_type',
             'driver_photo',
             'national_id',
-            'license_number',
         ];
         abort_if(
             array_intersect($driverFields, array_keys($data)) &&
@@ -245,7 +239,6 @@ class BadgeController extends Controller
             'job_title' => 'job_title',
             'person_type' => 'person_type',
             'national_id' => 'national_id',
-            'license_number' => 'license_number',
         ] as $requestField => $driverField) {
             if (array_key_exists($requestField, $data)) {
                 $driverUpdates[$driverField] = $data[$requestField];
@@ -274,7 +267,6 @@ class BadgeController extends Controller
                 'person_type' => $driver->person_type,
                 'driver_photo' => $driver->photo,
                 'national_id' => $driver->national_id,
-                'license_number' => $driver->license_number,
             ]);
         }
 
@@ -321,7 +313,6 @@ class BadgeController extends Controller
         $badge->person_type = $driver->person_type;
         $badge->driver_photo = $driver->photo;
         $badge->national_id = $driver->national_id;
-        $badge->license_number = $driver->license_number;
 
         $badge->vehicle_type = $vehicle?->vehicle_type
             ?? ($data['vehicle_type'] ?? $badge->vehicle_type);

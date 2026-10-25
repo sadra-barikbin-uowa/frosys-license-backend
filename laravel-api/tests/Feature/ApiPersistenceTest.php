@@ -199,8 +199,6 @@ class ApiPersistenceTest extends TestCase
             'full_name' => fake()->name(),
             'person_type' => 'employee',
             'phone' => fake()->phoneNumber(),
-            'license_number' => (string) Str::uuid(),
-            'license_expiry' => now()->addYear()->toDateString(),
             'created_by' => $creator->id,
         ]);
     }

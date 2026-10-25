@@ -9,9 +9,9 @@ const normalizeDriver = (driver) => ({
   personType: driver.person_type ?? driver.personType ?? "",
   birthDate: driver.birth_date ?? driver.birthDate ?? "",
   nationalId: driver.national_id ?? driver.nationalId ?? "",
-  licenseNumber: driver.license_number ?? driver.licenseNumber ?? "",
-  licenseIssue: driver.license_issue ?? driver.licenseIssue ?? "",
-  licenseExpiry: driver.license_expiry ?? driver.licenseExpiry ?? "",
+  identityDocument: imageUrl(driver.identity_document ?? driver.identityDocument),
+  identityDocumentBack: imageUrl(driver.identity_document_back ?? driver.identityDocumentBack),
+  identityDocumentType: driver.identity_document_type ?? driver.identityDocumentType ?? "administrative_order",
   createdBy: normalizeApiId(driver.created_by ?? driver.createdBy),
   createdByName: driver.creator?.name ?? driver.createdByName ?? "",
   vehicleId: normalizeApiId(driver.vehicles?.[0]?.id ?? driver.vehicle_id ?? driver.vehicleId),
@@ -24,9 +24,9 @@ const driverFields = {
   personType: "person_type",
   birthDate: "birth_date",
   nationalId: "national_id",
-  licenseNumber: "license_number",
-  licenseIssue: "license_issue",
-  licenseExpiry: "license_expiry",
+  identityDocument: "identity_document",
+  identityDocumentBack: "identity_document_back",
+  identityDocumentType: "identity_document_type",
 };
 
 export const driverService = {
@@ -55,8 +55,10 @@ export const driverService = {
 
   async updateDriver(id, data) {
     const body = await createApiBody(data, driverFields);
+    const isMultipart = body instanceof FormData;
+    if (isMultipart) body.append("_method", "PUT");
     const result = await apiRequest(`/drivers/${encodeURIComponent(id)}`, {
-      method: "PUT",
+      method: isMultipart ? "POST" : "PUT",
       body,
     });
     return result?.driver ? normalizeDriver(result.driver) : null;

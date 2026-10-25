@@ -1,9 +1,8 @@
-import { Car, CarTaxiFront, Bike, Truck } from "lucide-react";
+import { Car, CarTaxiFront, Truck } from "lucide-react";
 
 export const VEHICLE_TYPES = [
   { value: "car", label: "سيارة", icon: Car },
   { value: "taxi", label: "أجرة", icon: CarTaxiFront },
-  { value: "motorcycle", label: "دراجة نارية", icon: Bike },
   { value: "truck", label: "مركبة نقل", icon: Truck },
 ];
 

@@ -18,3 +18,19 @@ export const printBadge = async (
 	);
 	window.print();
 };
+
+export const printSticker = async () => {
+	const element = document.getElementById("print-sticker-area");
+	if (!element) return;
+
+	await Promise.all([...element.querySelectorAll("img")].map(waitForImage));
+	await new Promise((resolve) =>
+		requestAnimationFrame(() => requestAnimationFrame(resolve)),
+	);
+	document.body.classList.add("printing-sticker");
+	try {
+		window.print();
+	} finally {
+		document.body.classList.remove("printing-sticker");
+	}
+};

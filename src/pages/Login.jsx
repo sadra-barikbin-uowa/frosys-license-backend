@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ShieldCheck, User, Lock, AlertCircle, CreditCard, Printer, BellRing } from "lucide-react";
 import Input from "../components/common/Input";
 import Button from "../components/common/Button";
@@ -156,6 +156,25 @@ const Login = () => {
 							دخول
 						</Button>
 					</form>
+					<Link
+						to="/badge-request"
+						className="group mt-5 flex items-center gap-3 rounded-2xl border-2 border-indigo-200 bg-indigo-50 px-4 py-3.5 text-right transition-all hover:border-indigo-400 hover:bg-indigo-100 hover:shadow-md focus-visible:outline-indigo-600"
+					>
+						<span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm transition-transform group-hover:scale-105">
+							<CreditCard size={21} />
+						</span>
+						<span className="min-w-0 flex-1">
+							<span className="block text-sm font-extrabold text-indigo-900">
+								تريد الحصول على بطاقة؟
+							</span>
+							<span className="mt-0.5 block text-xs font-semibold text-indigo-700">
+								قدّم طلبك من هنا
+							</span>
+						</span>
+						<span aria-hidden="true" className="text-xl font-bold text-indigo-500 transition-transform group-hover:-translate-x-1">
+							←
+						</span>
+					</Link>
 				</div>
 			</main>
 		</div>
