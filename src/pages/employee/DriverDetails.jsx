@@ -173,7 +173,7 @@ const DriverDetails = ({ role = "employee" }) => {
 							<InfoRow icon={Phone} label="رقم الهاتف" value={driver.phone} />
 							<InfoRow
 								icon={User}
-								label="العنوان الوظيفي"
+								label="مكان العمل"
 								value={driver.jobTitle}
 							/>
 							<InfoRow icon={MapPin} label="العنوان" value={driver.address} />

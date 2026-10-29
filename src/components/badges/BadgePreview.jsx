@@ -116,7 +116,7 @@ const BadgeFront = ({ data, id, settings }) => {
 					{personTypeLabel(data.personType)}
 				</p>
 				<p className="text-[9px] font-semibold text-slate-700 leading-snug truncate">
-					العنوان الوظيفي:{" "}
+					مكان العمل:{" "}
 					<span className="font-bold text-slate-900">
 						{data.jobTitle || "—"}
 					</span>

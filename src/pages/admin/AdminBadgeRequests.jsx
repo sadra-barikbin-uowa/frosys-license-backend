@@ -137,8 +137,8 @@ const AdminBadgeRequests = () => {
 					<div className="flex flex-col gap-6">
 						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 							<Field label="الاسم الكامل" value={selectedRequest.fullName} />
-							<Field label="الصفة" value={personTypeLabel(selectedRequest.personType)} />
-							<Field label="العنوان الوظيفي" value={selectedRequest.jobTitle} />
+							<Field label="العنوان الوظيفي" value={personTypeLabel(selectedRequest.personType)} />
+							<Field label="مكان العمل" value={selectedRequest.jobTitle} />
 							<Field label="رقم الهاتف" value={selectedRequest.phone} />
 							<Field label="رقم الهوية" value={selectedRequest.nationalId} />
 							<Field

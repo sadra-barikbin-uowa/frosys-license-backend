@@ -77,8 +77,8 @@ export const createApiBody = async (data, fieldMap = {}) => {
     const body = new FormData();
     for (const [key, value] of Object.entries(mapped)) {
         if (imageFields.includes(key)) {
-            if (value === null) {
-                body.append(key, "");
+            if (value === null || value === "") {
+                continue;
             } else if (typeof value === "string" && value.startsWith("data:")) {
                 const blob = await imageBlob(value);
                 const extension = blob.type === "image/png" ? "png" : "jpg";
@@ -86,7 +86,7 @@ export const createApiBody = async (data, fieldMap = {}) => {
             } else if (typeof value === "string" && !/^https?:\/\//i.test(value)) {
                 body.append(key, value);
             }
-        } else if (value !== undefined && value !== null) {
+        } else if (value !== undefined && value !== null && value !== "") {
             body.append(key, String(value));
         }
     }

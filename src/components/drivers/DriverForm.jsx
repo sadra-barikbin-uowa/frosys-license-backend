@@ -48,18 +48,18 @@ const DriverForm = ({ data, errors, onChange }) => {
 						autoComplete="off"
 					/>
 					<Input
-						label="العنوان الوظيفي"
+						label="مكان العمل"
 						value={data.jobTitle}
 						onChange={set("jobTitle")}
 						placeholder="مثال: سائق شاحنة"
 					/>
 					<Select
-						label="صفة حامل البطاقة"
+						label="العنوان الوظيفي"
 						required
 						value={data.personType}
 						onChange={set("personType")}
 						error={errors.personType}
-						placeholder="اختر الصفة"
+						placeholder="اختر العنوان الوظيفي"
 						options={PERSON_TYPES}
 					/>
 					<Input

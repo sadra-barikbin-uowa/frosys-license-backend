@@ -227,7 +227,27 @@ textarea:focus-visible {
     border-radius: 2mm;
     color: #0b254e;
     overflow: hidden;
+    background: white;
   }
+
+  body.printing-sticker .badge-sticker.sticker-rounded {
+    border-radius: 2mm;
+  }
+
+  body.printing-sticker .badge-sticker.sticker-square {
+    border-radius: 0;
+  }
+
+  body.printing-sticker .badge-sticker.sticker-capsule {
+    border-radius: 10mm;
+  }
+
+  body.printing-sticker .badge-sticker.sticker-custom {
+    width: var(--sticker-width, 60mm);
+    height: var(--sticker-height, 30mm);
+    border-radius: 3mm;
+  }
+
 
   body.printing-sticker .badge-sticker-logo {
     width: 13mm;

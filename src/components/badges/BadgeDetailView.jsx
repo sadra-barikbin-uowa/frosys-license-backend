@@ -37,6 +37,15 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 	const [saving, setSaving] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const [previewSide, setPreviewSide] = useState("front");
+	const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
+	const [selectedStickerStyle, setSelectedStickerStyle] = useState("rounded");
+	const [customStickerSize, setCustomStickerSize] = useState({ width: 60, height: 30 });
+	const stickerStyles = [
+		{ value: "rounded", label: "مستطيل", preview: "rounded" },
+		{ value: "square", label: "مربع", preview: "square" },
+		{ value: "capsule", label: "كبسولة", preview: "capsule" },
+		{ value: "custom", label: "مخصص", preview: "custom" },
+	];
 
 	// الرابط ?print=1 يفتح نافذة الطباعة مرة واحدة، ثم نزيل المعامل حتى لا تتكرر الطباعة عند إعادة التحميل
 	const shouldPrint = searchParams.get("print") === "1";
@@ -69,9 +78,14 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 	};
 
 	const handlePrintSticker = async () => {
+		setStickerPickerOpen(true);
+	};
+
+	const confirmStickerPrint = async () => {
 		try {
 			await badgeService.authorizePrint(currentBadge.id);
-			await printSticker();
+			await printSticker(selectedStickerStyle, customStickerSize);
+			setStickerPickerOpen(false);
 		} catch (error) {
 			console.error(error);
 			showToast(getErrorMessage(error, "تعذر إنشاء الستيكر"), "error");
@@ -154,8 +168,8 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 
 	const rows = [
 		["اسم السائق", currentBadge.driverName],
-		["العنوان الوظيفي", currentBadge.jobTitle],
-		["صفة حامل البطاقة", personTypeLabel(currentBadge.personType)],
+		["مكان العمل", currentBadge.jobTitle],
+		["العنوان الوظيفي", personTypeLabel(currentBadge.personType)],
 		["رقم الهوية", currentBadge.nationalId],
 		["نوع المركبة", vehicleTypeLabel(currentBadge.vehicleType) || "—"],
 		["رقم المركبة", currentBadge.vehicleNumber || "—"],
@@ -258,7 +272,97 @@ const BadgeDetailView = ({ badge, backPath, isAdmin = false }) => {
 			</div>
 
 			<PrintBadge data={currentBadge} />
-			<PrintSticker data={currentBadge} />
+			<PrintSticker
+				data={currentBadge}
+				shape={selectedStickerStyle}
+				size={customStickerSize}
+			/>
+
+			<Modal
+				open={stickerPickerOpen}
+				onClose={() => setStickerPickerOpen(false)}
+				title="اختر شكل الستيكر"
+				size="lg"
+				footer={
+					<>
+						<Button variant="secondary" onClick={() => setStickerPickerOpen(false)}>
+							إلغاء
+						</Button>
+						<Button onClick={confirmStickerPrint}>
+							إنشاء الستيكر
+						</Button>
+					</>
+				}
+			>
+				<div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+					{stickerStyles.map((style) => (
+						<button
+							type="button"
+							key={style.value}
+							onClick={() => setSelectedStickerStyle(style.value)}
+							className={`group rounded-2xl border-2 p-3 transition-all ${
+								selectedStickerStyle === style.value
+									? "border-indigo-600 bg-indigo-50"
+									: "border-slate-200 bg-white hover:border-slate-300"
+							}`}
+						>
+							<div
+								className={`mx-auto mb-3 flex items-center justify-center border border-slate-200 bg-white text-slate-700 ${
+									style.preview === "rounded"
+										? "h-16 w-24 rounded-xl"
+										: style.preview === "square"
+											? "h-16 w-16 rounded-none"
+											: style.preview === "custom"
+												? "h-16 w-28 rounded-md"
+												: "h-16 w-24 rounded-full"
+								}`}
+							>
+								<div className="flex flex-col items-center gap-1 text-center">
+									<div className="h-5 w-5 rounded-full bg-indigo-500" />
+									<span className="text-[9px] font-bold">{style.label}</span>
+								</div>
+							</div>
+							<p className="text-center text-xs font-medium text-slate-700">{style.label}</p>
+						</button>
+					))}
+				</div>
+				{selectedStickerStyle === "custom" && (
+					<div className="mt-5 grid grid-cols-2 gap-4 border-t border-slate-200 pt-4">
+						<div>
+							<label className="mb-1.5 block text-sm font-medium text-slate-700">العرض (مم)</label>
+							<input
+								type="number"
+								min={20}
+								max={100}
+								value={customStickerSize.width}
+								onChange={(event) =>
+									setCustomStickerSize((current) => ({
+										...current,
+										width: Number(event.target.value) || 20,
+									}))
+								}
+								className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-indigo-500"
+							/>
+						</div>
+						<div>
+							<label className="mb-1.5 block text-sm font-medium text-slate-700">الطول (مم)</label>
+							<input
+								type="number"
+								min={20}
+								max={100}
+								value={customStickerSize.height}
+								onChange={(event) =>
+									setCustomStickerSize((current) => ({
+										...current,
+										height: Number(event.target.value) || 20,
+									}))
+								}
+								className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-indigo-500"
+							/>
+						</div>
+					</div>
+				)}
+			</Modal>
 
 			<Modal
 				open={editing}
@@ -326,12 +430,12 @@ const EditBadgeForm = ({ data, errors, onChange, setDraftValue, canEditDriver, c
 					error={errors.driverName}
 				/>}
 				{canEditDriver && <Input
-					label="العنوان الوظيفي"
+					label="مكان العمل"
 					value={data.jobTitle || ""}
 					onChange={setDraftValue("jobTitle")}
 				/>}
 				{canEditDriver && <Select
-					label="صفة حامل البطاقة"
+					label="العنوان الوظيفي"
 					value={data.personType || ""}
 					onChange={setDraftValue("personType")}
 					options={PERSON_TYPES}

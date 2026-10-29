@@ -100,7 +100,7 @@ const BadgeRequestForm = () => {
 						</div>
 						<div>
 							<p className="font-bold text-slate-800">{settings.systemName}</p>
-							<p className="text-xs text-slate-500">تقديم طلب بطاقة</p>
+							<p className="text-xs text-slate-500">قسم المتابعة</p>
 						</div>
 					</div>
 					<Link
@@ -113,7 +113,7 @@ const BadgeRequestForm = () => {
 
 				<div className="surface p-5 sm:p-7">
 					<h1 className="text-xl font-bold text-slate-800">
-						طلب الحصول على بطاقة
+						طلب الحصول على باج دخول العجلات الخاص بملاك الجامعة
 					</h1>
 					<p className="text-sm text-slate-500 mt-1 mb-6">
 						أدخل بياناتك وارفع وجهي سنوية المركبة. أرفق وجهي الهوية الجامعية، أو

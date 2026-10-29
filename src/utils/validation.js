@@ -13,7 +13,7 @@ export const validateDriverForm = (
 	const errors = {};
 
 	if (!required(data.fullName)) errors.fullName = "الاسم الكامل مطلوب";
-	if (!required(data.personType)) errors.personType = "صفة حامل البطاقة مطلوبة";
+	if (!required(data.personType)) errors.personType = "العنوان الوظيفي مطلوب";
 	if (!required(data.nationalId)) errors.nationalId = "رقم الهوية الوطنية مطلوب";
 	if (!required(data.phone)) errors.phone = "رقم الهاتف مطلوب";
 	else if (!/^[0-9+\s-]{7,15}$/.test(toLatinDigits(data.phone).trim()))
@@ -21,7 +21,10 @@ export const validateDriverForm = (
 
 	if (!required(data.photo)) errors.photo = "صورة السائق مطلوبة";
 	if (requireIdentityDocument && !required(data.identityDocument))
-		errors.identityDocument = "صورة وجه الهوية الجامعية أو الأمر الإداري مطلوبة";
+		errors.identityDocument =
+			data.identityDocumentType === "university_id"
+				? "صورة وجه الهوية الجامعية مطلوبة"
+				: "صورة الأمر الإداري مطلوبة";
 	if (
 		data.identityDocumentType === "university_id" &&
 		!required(data.identityDocumentBack)
