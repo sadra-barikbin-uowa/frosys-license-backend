@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('system_settings', function (Blueprint $table) {
             $table->id();
-            $table->string('system_name')->default('نظام إدارة السائقين والمركبات');
+            $table->string('system_name')->default('');
             $table->string('logo')->nullable();
             $table->string('manager_signature')->nullable();
             $table->string('manager_signature_color', 7)->default('#172554');

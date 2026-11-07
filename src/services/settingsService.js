@@ -2,7 +2,7 @@ import { apiRequest } from "./api";
 import { createApiBody, imageUrl } from "./apiResources";
 
 export const defaultSettings = {
-	systemName: "نظام إدارة السائقين والمركبات",
+	systemName: "",
 	logo: "",
 	managerSignature: "",
 	managerSignatureColor: "#172554",
@@ -17,7 +17,7 @@ let currentSettings = { ...defaultSettings };
 
 const normalizeSettings = (settings) => {
 	const data = settings || {};
-	const systemName = data.system_name ?? data.systemName ?? defaultSettings.systemName;
+	const systemName = data.system_name || data.systemName || defaultSettings.systemName;
 	return {
 		...defaultSettings,
 		systemName,
